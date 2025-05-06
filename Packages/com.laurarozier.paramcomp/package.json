@@ -1,0 +1,25 @@
+{
+  "name": "com.laurarozier.paramcomp",
+  "displayName": "Laura Parameter Compressor",
+  "description": "VRChat Parameter Compressor by LauraRozier.",
+  "version": "1.0.0",
+  "unity": "2022.3",
+  "author": {
+    "name": "LauraRozier",
+    "email": "laura@chatfrog.games",
+    "url": "https://github.com/LauraRozier"
+  },
+  "keywords": [
+    "laurarozier",
+    "compressor",
+    "parameter",
+    "vrchat"
+  ],
+  "type": "tool",
+  "dependencies": {},
+  "vpmDependencies": {
+  },
+  "license": "MIT",
+  "licensesUrl": "https://github.com/LauraRozier/LauraParamCompressor/blob/master/LICENSE",
+  "changelogUrl": "https://github.com/LauraRozier/LauraParamCompressor/blob/master/CHANGELOG.md"
+}
