@@ -32,6 +32,7 @@ namespace ParamComp.Editor
         public const int BoolBatchSize = 8;
         public const string SyncPointerName = "Laura/Sync/Ptr";
         public const string SyncDataNumName = "Laura/Sync/DataNum";
+        public const string SyncTrueName = "Laura/Sync/True";
         public readonly static string[] SyncDataBoolNames = new[] {
             "Laura/Sync/DataBool0",
             "Laura/Sync/DataBool1",
@@ -54,6 +55,7 @@ namespace ParamComp.Editor
                     SyncDataBoolNames.Contains(param.name) ||
                     SyncPointerName.Equals(param.name, StringComparison.InvariantCulture) ||
                     SyncDataNumName.Equals(param.name, StringComparison.InvariantCulture) ||
+                    SyncTrueName.Equals(param.name, StringComparison.InvariantCulture) ||
                     !param.networkSynced) continue;
 
                 Parameters.Add(new() {
@@ -145,7 +147,6 @@ namespace ParamComp.Editor
         private VRCExpressionParameters _vrcParameters = null;
         private AnimatorController _animCtrl = null;
         private ListView _list;
-        private Motion _stateMotion;
 
         [MenuItem("Tools/LauraRozier/Parameter Compressor")]
         public static void ShowWindow() {
@@ -313,10 +314,9 @@ namespace ParamComp.Editor
 
             var animCtrlPath = AssetDatabase.GetAssetPath(_animCtrl);
             var vrcParametersPath = AssetDatabase.GetAssetPath(_vrcParameters);
-            _stateMotion = AssetDatabase.LoadAssetAtPath<Motion>("Packages/com.laurarozier.paramcomp/Resources/TenFrame.anim");
 
             BackupOriginals(animCtrlPath, vrcParametersPath);
-            var (localMachine, remoteMachine) = AddRequiredObjects(animCtrlPath, numParams.Any());
+            var (localMachine, remoteMachine) = AddRequiredObjects(animCtrlPath, numParams.Any(), boolParams.Any());
             ProcessParams(localMachine, remoteMachine, boolBatches, numParams.Select(x => (x.SourceParam.name, x.SourceParam.valueType)).ToArray(), paramsToOptimize);
 
             AssetDatabase.SaveAssets();
@@ -331,16 +331,23 @@ namespace ParamComp.Editor
             AssetDatabase.SaveAssets();
         }
 
-        private (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(string animCtrlPath, bool hasNumParams)
+        private (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(string animCtrlPath, bool hasNumParams, bool hasBoolBatches)
         {
             if (!_animCtrl.parameters.Any(x => x.name == "IsLocal"))
                 _animCtrl.AddParameter("IsLocal", AnimatorControllerParameterType.Bool);
 
+            _animCtrl.AddParameter(new AnimatorControllerParameter {
+                name = _animCtrl.MakeUniqueParameterName(UtilParameters.SyncTrueName),
+                type = AnimatorControllerParameterType.Bool,
+                defaultBool = true
+            });
             AddIntParameter(UtilParameters.SyncPointerName);
             if (hasNumParams) AddIntParameter(UtilParameters.SyncDataNumName);
 
-            for (int i = 0; i < UtilParameters.BoolBatchSize; i++) {
-                AddBoolParameter(UtilParameters.SyncDataBoolNames[i]);
+            if (hasBoolBatches) {
+                for (int i = 0; i < UtilParameters.BoolBatchSize; i++) {
+                    AddBoolParameter(UtilParameters.SyncDataBoolNames[i]);
+                }
             }
 
             var layerName = _animCtrl.MakeUniqueLayerName("[Laura]CompressedParams");
@@ -360,7 +367,6 @@ namespace ParamComp.Editor
             _animCtrl.AddLayer(newLayer);
 
             var entryState = newLayer.stateMachine.AddState("Entry Selector", new(0, 60));
-            entryState.motion = _stateMotion;
             entryState.writeDefaultValues = false;
             newLayer.stateMachine.defaultState = entryState;
             AddCredit(newLayer.stateMachine);
@@ -391,12 +397,13 @@ namespace ParamComp.Editor
                 remoteMachine.AddEntryTransition(getState)
                     .AddCondition(AnimatorConditionMode.Equals, syncIndex, UtilParameters.SyncPointerName);
 
-                var outTrans = getState.AddExitTransition();
-                outTrans.hasExitTime = true;
-                outTrans.exitTime = 0f;
-                outTrans.hasFixedDuration = true;
-                outTrans.duration = 0f;
-                outTrans.offset = 0f;
+                var exitTrans = getState.AddExitTransition();
+                exitTrans.hasExitTime = false;
+                exitTrans.exitTime = 0f;
+                exitTrans.hasFixedDuration = true;
+                exitTrans.duration = 0f;
+                exitTrans.offset = 0f;
+                exitTrans.AddCondition(AnimatorConditionMode.If, 0, UtilParameters.SyncTrueName);
 
                 if (i == 0) {
                     localMachine.defaultState = setState;
@@ -458,22 +465,22 @@ namespace ParamComp.Editor
         private void AddCredit(AnimatorStateMachine machine) =>
             machine.AddStateMachine("Laura's Param Compression\nDiscord: LauraRozier", new(-300, -140));
 
-        private AnimatorStateTransition  AddTransition(AnimatorState srcState, AnimatorState dstState, bool hasExitTime, float exitTime = 1f)
+        private AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorState dstState, bool hasExitTime)
         {
             var trans = srcState.AddTransition(dstState);
             trans.hasExitTime = hasExitTime;
-            trans.exitTime = hasExitTime ? exitTime : 0f;
+            trans.exitTime = hasExitTime ? 0.5f : 0f;
             trans.hasFixedDuration = true;
             trans.offset = 0f;
             trans.duration = 0f;
             return trans;
         }
 
-        private AnimatorStateTransition  AddTransition(AnimatorState srcState, AnimatorStateMachine  dstMachine, bool hasExitTime, float exitTime = 1f)
+        private AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorStateMachine  dstMachine, bool hasExitTime)
         {
             var trans = srcState.AddTransition(dstMachine);
             trans.hasExitTime = hasExitTime;
-            trans.exitTime = hasExitTime ? exitTime : 0f;
+            trans.exitTime = hasExitTime ? 0.5f : 0f;
             trans.hasFixedDuration = true;
             trans.offset = 0f;
             trans.duration = 0f;
@@ -517,7 +524,6 @@ namespace ParamComp.Editor
             var state = isRemote
                 ? machine.AddState($"Remote Get #{idx}", pos)
                 : machine.AddState($"Local Set #{idx}", pos);
-            state.motion = _stateMotion;
             state.writeDefaultValues = false;
 
             var driver = state.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
