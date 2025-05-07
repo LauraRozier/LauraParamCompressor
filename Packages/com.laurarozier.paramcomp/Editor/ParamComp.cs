@@ -22,14 +22,8 @@ namespace ParamComp.Editor
 
     internal class UtilParameters
     {
-        public readonly static string[] VRChatParams = new[] {
-            "IsLocal", "PreviewMode", "Viseme", "Voice", "GestureLeft", "GestureRight", "GestureLeftWeight",
-            "GestureRightWeight", "AngularY", "VelocityX", "VelocityY", "VelocityZ", "VelocityMagnitude",
-            "Upright", "Grounded", "Seated", "AFK", "TrackingType", "VRMode", "MuteSelf", "InStation",
-            "Earmuffs", "IsOnFriendsList", "AvatarVersion", "IsAnimatorEnabled", "ScaleModified", "ScaleFactor",
-            "ScaleFactorInverse", "EyeHeightAsMeters", "EyeHeightAsPercent", "VRCEmote", "VRCFaceBlendH", "VRCFaceBlendV"
-        };
         public const int BoolBatchSize = 8;
+        public const string IsLocalName = "IsLocal";
         public const string SyncPointerName = "Laura/Sync/Ptr";
         public const string SyncDataNumName = "Laura/Sync/DataNum";
         public const string SyncTrueName = "Laura/Sync/True";
@@ -42,6 +36,13 @@ namespace ParamComp.Editor
             "Laura/Sync/DataBool5",
             "Laura/Sync/DataBool6",
             "Laura/Sync/DataBool7",
+        };
+        public readonly static string[] VRChatParams = new[] {
+            IsLocalName, "PreviewMode", "Viseme", "Voice", "GestureLeft", "GestureRight", "GestureLeftWeight",
+            "GestureRightWeight", "AngularY", "VelocityX", "VelocityY", "VelocityZ", "VelocityMagnitude",
+            "Upright", "Grounded", "Seated", "AFK", "TrackingType", "VRMode", "MuteSelf", "InStation",
+            "Earmuffs", "IsOnFriendsList", "AvatarVersion", "IsAnimatorEnabled", "ScaleModified", "ScaleFactor",
+            "ScaleFactorInverse", "EyeHeightAsMeters", "EyeHeightAsPercent", "VRCEmote", "VRCFaceBlendH", "VRCFaceBlendV"
         };
         public List<UtilParameterInfo> Parameters { get; } = new();
 
@@ -333,14 +334,16 @@ namespace ParamComp.Editor
 
         private (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(string animCtrlPath, bool hasNumParams, bool hasBoolBatches)
         {
-            if (!_animCtrl.parameters.Any(x => x.name == "IsLocal"))
-                _animCtrl.AddParameter("IsLocal", AnimatorControllerParameterType.Bool);
+            if (!_animCtrl.parameters.Any(x => x.name == UtilParameters.IsLocalName))
+                _animCtrl.AddParameter(UtilParameters.IsLocalName, AnimatorControllerParameterType.Bool);
 
-            _animCtrl.AddParameter(new AnimatorControllerParameter {
-                name = _animCtrl.MakeUniqueParameterName(UtilParameters.SyncTrueName),
-                type = AnimatorControllerParameterType.Bool,
-                defaultBool = true
-            });
+            if (!_animCtrl.parameters.Any(x => x.name == UtilParameters.SyncTrueName))
+                _animCtrl.AddParameter(new AnimatorControllerParameter {
+                    name = _animCtrl.MakeUniqueParameterName(UtilParameters.SyncTrueName),
+                    type = AnimatorControllerParameterType.Bool,
+                    defaultBool = true
+                });
+
             AddIntParameter(UtilParameters.SyncPointerName);
             if (hasNumParams) AddIntParameter(UtilParameters.SyncDataNumName);
 
@@ -458,7 +461,7 @@ namespace ParamComp.Editor
 
             AddCredit(newMachine);
             var trans = AddTransition(entryState, newMachine, false);
-            trans.AddCondition(isRemote ? AnimatorConditionMode.IfNot : AnimatorConditionMode.If, 0, "IsLocal");
+            trans.AddCondition(isRemote ? AnimatorConditionMode.IfNot : AnimatorConditionMode.If, 0, UtilParameters.IsLocalName);
             return newMachine;
         }
 
@@ -489,34 +492,42 @@ namespace ParamComp.Editor
 
         private void AddIntParameter(string name)
         {
-            _animCtrl.AddParameter(name, AnimatorControllerParameterType.Int);
-            var syncedParamsList = new List<VRCExpressionParameters.Parameter>(_vrcParameters.parameters) {
-                new() {
-                    name = name,
-                    valueType = VRCExpressionParameters.ValueType.Int,
-                    saved = false,
-                    defaultValue = 0,
-                    networkSynced = true
-                }
-            };
-            _vrcParameters.parameters = syncedParamsList.ToArray();
-            EditorUtility.SetDirty(_vrcParameters);
+            if (!_animCtrl.parameters.Any(x => x.name == name))
+                _animCtrl.AddParameter(name, AnimatorControllerParameterType.Int);
+
+            if (!_vrcParameters.parameters.Any(x => x.name == name)) {
+                List<VRCExpressionParameters.Parameter> syncedParamsList = new(_vrcParameters.parameters) {
+                    new() {
+                        name = name,
+                        valueType = VRCExpressionParameters.ValueType.Int,
+                        saved = false,
+                        defaultValue = 0,
+                        networkSynced = true
+                    }
+                };
+                _vrcParameters.parameters = syncedParamsList.ToArray();
+                EditorUtility.SetDirty(_vrcParameters);
+            }
         }
 
         private void AddBoolParameter(string name)
         {
-            _animCtrl.AddParameter(name, AnimatorControllerParameterType.Bool);
-            var syncedParamsList = new List<VRCExpressionParameters.Parameter>(_vrcParameters.parameters) {
-                new() {
-                    name = name,
-                    valueType = VRCExpressionParameters.ValueType.Bool,
-                    saved = false,
-                    defaultValue = 0,
-                    networkSynced = true
-                }
-            };
-            _vrcParameters.parameters = syncedParamsList.ToArray();
-            EditorUtility.SetDirty(_vrcParameters);
+            if (!_animCtrl.parameters.Any(x => x.name == name))
+                _animCtrl.AddParameter(name, AnimatorControllerParameterType.Bool);
+
+            if (!_vrcParameters.parameters.Any(x => x.name == name)) {
+                List<VRCExpressionParameters.Parameter> syncedParamsList = new(_vrcParameters.parameters) {
+                    new() {
+                        name = name,
+                        valueType = VRCExpressionParameters.ValueType.Bool,
+                        saved = false,
+                        defaultValue = 0,
+                        networkSynced = true
+                    }
+                };
+                _vrcParameters.parameters = syncedParamsList.ToArray();
+                EditorUtility.SetDirty(_vrcParameters);
+            }
         }
 
         private (AnimatorState, VRCAvatarParameterDriver) AddState(AnimatorStateMachine machine, int idx, Vector2 pos, bool isRemote)
