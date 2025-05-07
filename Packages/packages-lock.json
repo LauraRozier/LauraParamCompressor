@@ -263,6 +263,12 @@
       },
       "hash": "681693b1ebf995f6d6f7e9bfdfda41e316623bbf"
     },
+    "com.vrchat.avatars": {
+      "version": "file:com.vrchat.avatars",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.vrchat.base": {
       "version": "file:com.vrchat.base",
       "depth": 0,

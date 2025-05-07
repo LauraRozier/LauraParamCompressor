@@ -1,0 +1,161 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: -1506855854, guid: 67cc4cb7839cd3741b63733d5adf0442, type: 3}
+  m_Name: Dev Params
+  m_EditorClassIdentifier: 
+  isEmpty: 0
+  parameters:
+  - name: VRCEmote
+    valueType: 0
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: VRCFaceBlendH
+    valueType: 1
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: VRCFaceBlendV
+    valueType: 1
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: Float1
+    valueType: 1
+    saved: 1
+    defaultValue: 0.1
+    networkSynced: 1
+  - name: Float2
+    valueType: 1
+    saved: 1
+    defaultValue: 0.2
+    networkSynced: 1
+  - name: Float3
+    valueType: 1
+    saved: 1
+    defaultValue: 0.3
+    networkSynced: 1
+  - name: Int1
+    valueType: 0
+    saved: 1
+    defaultValue: 10
+    networkSynced: 1
+  - name: Int2
+    valueType: 0
+    saved: 1
+    defaultValue: 20
+    networkSynced: 1
+  - name: Int3
+    valueType: 0
+    saved: 1
+    defaultValue: 30
+    networkSynced: 1
+  - name: Bool1
+    valueType: 2
+    saved: 1
+    defaultValue: 1
+    networkSynced: 1
+  - name: Bool2
+    valueType: 2
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: Bool3
+    valueType: 2
+    saved: 1
+    defaultValue: 1
+    networkSynced: 1
+  - name: Bool4
+    valueType: 2
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: Bool5
+    valueType: 2
+    saved: 1
+    defaultValue: 1
+    networkSynced: 1
+  - name: Bool6
+    valueType: 2
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: Bool7
+    valueType: 2
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: Bool8
+    valueType: 2
+    saved: 1
+    defaultValue: 1
+    networkSynced: 1
+  - name: Bool9
+    valueType: 2
+    saved: 1
+    defaultValue: 1
+    networkSynced: 1
+  - name: Bool10
+    valueType: 2
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: Bool11
+    valueType: 2
+    saved: 1
+    defaultValue: 1
+    networkSynced: 1
+  - name: Bool12
+    valueType: 2
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: Bool13
+    valueType: 2
+    saved: 1
+    defaultValue: 0
+    networkSynced: 1
+  - name: Bool14
+    valueType: 2
+    saved: 1
+    defaultValue: 1
+    networkSynced: 1
+  - name: FloatNoSave
+    valueType: 1
+    saved: 0
+    defaultValue: 0.5
+    networkSynced: 1
+  - name: FloatNoSync
+    valueType: 1
+    saved: 1
+    defaultValue: 0.5
+    networkSynced: 0
+  - name: IntNoSave
+    valueType: 0
+    saved: 0
+    defaultValue: 123
+    networkSynced: 1
+  - name: IntNoSync
+    valueType: 0
+    saved: 1
+    defaultValue: 123
+    networkSynced: 0
+  - name: BoolNoSave
+    valueType: 2
+    saved: 0
+    defaultValue: 1
+    networkSynced: 1
+  - name: BoolNoSync
+    valueType: 2
+    saved: 1
+    defaultValue: 1
+    networkSynced: 0
