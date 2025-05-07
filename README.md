@@ -6,7 +6,7 @@
 Due to some annoyances with other tools, I now made my own parameter compressor.
 
 You can add it to your VCC here: https://laurarozier.github.io/LauraVRCUtils/  
-In VCC you can add it by adding the package Laura Parameter Compressor
+In VCC you can add it by adding the package `Laura Parameter Compressor`
 
 This one uses either 16 or 24 bits for the syncing, depending on whether or not you have bools or ints/floats to sync.
 It syncs one int/float and 8 bools per step and transitions after half a second.
