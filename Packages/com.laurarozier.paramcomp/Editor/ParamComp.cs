@@ -3,7 +3,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -135,176 +134,14 @@ namespace ParamComp.Editor
         }
     }
 
-    public class ParamComp : EditorWindow
-    {
-        private static readonly Vector2 _windowSize = new Vector2(760f, 600f);
+    internal class ParamComp {
 
-        private VRCAvatarDescriptor[] _avatars = null;
-        private int _selectedAvatarId = -1;
-        private VRCAvatarDescriptor _selectedAvatar = null;
-        private string[] _avatarOptions = Array.Empty<string>();
-        private VRCExpressionsMenu _exprMenu = null;
-        private UtilParameters _exprParams = new();
-        private VRCExpressionParameters _vrcParameters = null;
-        private AnimatorController _animCtrl = null;
-        private ListView _list;
-
-        [MenuItem("Tools/LauraRozier/Parameter Compressor")]
-        public static void ShowWindow() {
-            EditorWindow wnd = GetWindow<ParamComp>(true, "Parameter Compressor", true);
-            wnd.minSize = _windowSize;
-            wnd.maxSize = _windowSize;
-        }
-
-        private void OnEnable() => FindAvatars();
-
-        private async void OnHierarchyChange()
+        internal static void PerformCompression(UtilParameters exprParams, AnimatorController animCtrl, VRCExpressionParameters vrcParameters)
         {
-            await Task.Delay(100);
-            FindAvatars();
-        }
+            if (!exprParams.HasParamsToOptimize()) return;
 
-        public void CreateGUI()
-        {
-            var imguiContainer = new IMGUIContainer(() => {
-                EditorGUILayout.Space();
-
-                if (_avatars.Length <= 0) {
-                    EditorGUILayout.HelpBox("No avatars in scene!", MessageType.Warning);
-                    return;
-                }
-
-                EditorGUI.BeginChangeCheck();
-                {
-                    _selectedAvatarId = EditorGUILayout.Popup("Avatar", _selectedAvatarId, _avatarOptions);
-                }
-                if (EditorGUI.EndChangeCheck()) UpdateSelectedAvatar();
-                if (_selectedAvatar == null) return;
-
-                GUI.enabled = false;
-                EditorGUILayout.ObjectField("Expression Menu", _exprMenu, typeof(VRCExpressionsMenu), true);
-                EditorGUILayout.ObjectField("Expression Parameters", _vrcParameters, typeof(VRCExpressionParameters), true);
-                EditorGUILayout.ObjectField("FX Controller", _animCtrl, typeof(RuntimeAnimatorController), true);
-                GUI.enabled = true;
-                if (GUILayout.Button("Compress", GUILayout.ExpandWidth(false))) PerformCompression();
-                EditorGUILayout.HelpBox(
-                    "Only non-VRChat and Synced parameters are shown.\n" +
-                    "This tool also makes backup of the original FX controller and VRChat Parameters, you can find them at the same location as the sources.\n\n" +
-                    "Keep in mind that this tool will also skip any compression run where there are no bit-count savings!",
-                    MessageType.Info
-                );
-                EditorGUILayout.Space();
-            });
-            rootVisualElement.Add(imguiContainer);
-
-            var titleBox = new Box();
-            {
-                titleBox.style.flexDirection = FlexDirection.Row;
-                titleBox.style.paddingBottom = 2;
-                titleBox.style.borderBottomWidth = 1;
-                titleBox.style.borderBottomColor = Color.grey;
-
-                var lblName = new Label("Name");
-                lblName.style.width = 400;
-                titleBox.Add(lblName);
-
-                var lblVT = new Label("Value Type");
-                lblVT.style.width = 80;
-                titleBox.Add(lblVT);
-
-                var lblDV = new Label("Default Value");
-                lblDV.style.width = 90;
-                titleBox.Add(lblDV);
-
-                var lblSaved = new Label("Saved");
-                lblSaved.style.width = 50;
-                titleBox.Add(lblSaved);
-
-                var lblEP = new Label("Enable Processing");
-                lblEP.style.width = 110;
-                titleBox.Add(lblEP);
-            }
-            rootVisualElement.Add(titleBox);
-
-            var scrollView = new ScrollView(ScrollViewMode.Vertical);
-            {
-                scrollView.style.width = 760;
-                scrollView.style.height = 420;
-                scrollView.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
-
-                _list = new() {
-                    showFoldoutHeader = false,
-                    showAddRemoveFooter = false,
-                    reorderable = false,
-                    makeItem = () => new ParamField(),
-                    bindItem = BindItem,
-                    itemsSource = _exprParams.Parameters
-                };
-                scrollView.Add(_list);
-            }
-            rootVisualElement.Add(scrollView);
-        }
-
-        private void FindAvatars()
-        {
-            var allAvatars = VRC.Tools.FindSceneObjectsOfTypeAll<VRCAvatarDescriptor>();
-            // Select only the active avatars
-            _avatars = allAvatars.Where(av => null != av && av.gameObject.activeInHierarchy).ToArray();
-            _avatarOptions = new string[_avatars.Length];
-
-            if (_avatars.Length <= 0) return;
-
-            for (int i = 0; i < _avatars.Length; i++) {
-                _avatarOptions[i] = _avatars[i].name;
-            }
-
-            _selectedAvatarId = Array.IndexOf(_avatars, _selectedAvatar);
-            if (_selectedAvatarId < 0) _selectedAvatarId = 0;
-            _selectedAvatar = _avatars[_selectedAvatarId];
-            UpdateSelectedAvatar();
-        }
-
-        private void BindItem(VisualElement el, int idx) {
-            ((ParamField)el).SetValue(_exprParams.Parameters[idx]);
-            ((ParamField)el).OnChanged += (val) => {
-                var tmp = _exprParams.Parameters[idx];
-                tmp.EnableProcessing = val;
-                _exprParams.Parameters[idx] = tmp;
-            };
-        }
-
-        private void UpdateSelectedAvatar() {
-            _selectedAvatar = _avatars[_selectedAvatarId];
-
-            if (_selectedAvatar == null) return;
-
-            _exprMenu = _selectedAvatar.expressionsMenu;
-            _vrcParameters = _selectedAvatar.expressionParameters;
-            _exprParams.SetValues(_vrcParameters);
-            _list?.RefreshItems();
-            var runtimeCtrl = _selectedAvatar.baseAnimationLayers?.FirstOrDefault(
-                    bal => bal.type == VRCAvatarDescriptor.AnimLayerType.FX
-                ).animatorController;
-            _animCtrl = runtimeCtrl != null
-                ? AssetDatabase.LoadAssetAtPath<AnimatorController>(AssetDatabase.GetAssetPath(runtimeCtrl))
-                : null;
-        }
-
-        private void BackupAsset(string oldPath)
-        {
-            var newPath = Path.Combine(
-                Path.GetDirectoryName(oldPath),
-                $"{Path.GetFileNameWithoutExtension(oldPath)}_backup_{DateTime.Now:yyyy-MM-dd_HH-mm}.{Path.GetExtension(oldPath)}"
-            );
-            AssetDatabase.CopyAsset(oldPath, newPath);
-        }
-
-        private void PerformCompression()
-        {
-            if (!_exprParams.HasParamsToOptimize()) return;
-
-            var boolParams = _exprParams.GetBoolParams();
-            var numParams = _exprParams.GetNumericParams();
+            var boolParams = exprParams.GetBoolParams();
+            var numParams = exprParams.GetNumericParams();
             var boolBatches = boolParams.Select((x, idx) => (x.SourceParam.name, idx))
                 .GroupBy(x => x.idx / UtilParameters.BoolBatchSize)
                 .Select(g => g.Select(x => x.name).ToArray()).ToList();
@@ -313,47 +150,54 @@ namespace ParamComp.Editor
             var bitsToRemove = paramsToOptimize.Sum(p => VRCExpressionParameters.TypeCost(p.SourceParam.valueType));
             if (bitsToAdd >= bitsToRemove) return; // Don't optimize if it won't save space
 
-            var animCtrlPath = AssetDatabase.GetAssetPath(_animCtrl);
-            var vrcParametersPath = AssetDatabase.GetAssetPath(_vrcParameters);
+            var animCtrlPath = AssetDatabase.GetAssetPath(animCtrl);
+            var vrcParametersPath = AssetDatabase.GetAssetPath(vrcParameters);
 
             BackupOriginals(animCtrlPath, vrcParametersPath);
-            var (localMachine, remoteMachine) = AddRequiredObjects(animCtrlPath, numParams.Any(), boolParams.Any());
-            ProcessParams(localMachine, remoteMachine, boolBatches, numParams.Select(x => (x.SourceParam.name, x.SourceParam.valueType)).ToArray(), paramsToOptimize);
+            var (localMachine, remoteMachine) = AddRequiredObjects(animCtrl, vrcParameters, animCtrlPath, numParams.Any(), boolParams.Any());
+            ProcessParams(animCtrl, localMachine, remoteMachine, boolBatches, numParams.Select(x => (x.SourceParam.name, x.SourceParam.valueType)).ToArray(), paramsToOptimize);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            UpdateSelectedAvatar();
         }
 
-        private void BackupOriginals(string animCtrlPath, string vrcParametersPath)
+        private static void BackupAsset(string oldPath)
+        {
+            var newPath = Path.Combine(
+                Path.GetDirectoryName(oldPath),
+                $"{Path.GetFileNameWithoutExtension(oldPath)}_backup_{DateTime.Now:yyyy-MM-dd_HH-mm}.{Path.GetExtension(oldPath)}"
+            );
+            AssetDatabase.CopyAsset(oldPath, newPath);
+        }
+
+        private static void BackupOriginals(string animCtrlPath, string vrcParametersPath)
         {
             BackupAsset(animCtrlPath);
             BackupAsset(vrcParametersPath);
             AssetDatabase.SaveAssets();
         }
 
-        private (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(string animCtrlPath, bool hasNumParams, bool hasBoolBatches)
+        private static (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(AnimatorController animCtrl, VRCExpressionParameters vrcParameters, string animCtrlPath, bool hasNumParams, bool hasBoolBatches)
         {
-            if (!_animCtrl.parameters.Any(x => x.name == UtilParameters.IsLocalName))
-                _animCtrl.AddParameter(UtilParameters.IsLocalName, AnimatorControllerParameterType.Bool);
+            if (!animCtrl.parameters.Any(x => x.name == UtilParameters.IsLocalName))
+                animCtrl.AddParameter(UtilParameters.IsLocalName, AnimatorControllerParameterType.Bool);
 
-            if (!_animCtrl.parameters.Any(x => x.name == UtilParameters.SyncTrueName))
-                _animCtrl.AddParameter(new AnimatorControllerParameter {
-                    name = _animCtrl.MakeUniqueParameterName(UtilParameters.SyncTrueName),
+            if (!animCtrl.parameters.Any(x => x.name == UtilParameters.SyncTrueName))
+                animCtrl.AddParameter(new AnimatorControllerParameter {
+                    name = animCtrl.MakeUniqueParameterName(UtilParameters.SyncTrueName),
                     type = AnimatorControllerParameterType.Bool,
                     defaultBool = true
                 });
 
-            AddIntParameter(UtilParameters.SyncPointerName);
-            if (hasNumParams) AddIntParameter(UtilParameters.SyncDataNumName);
+            AddIntParameter(animCtrl, vrcParameters, UtilParameters.SyncPointerName);
+            if (hasNumParams) AddIntParameter(animCtrl, vrcParameters, UtilParameters.SyncDataNumName);
 
-            if (hasBoolBatches) {
+            if (hasBoolBatches)
                 for (int i = 0; i < UtilParameters.BoolBatchSize; i++) {
-                    AddBoolParameter(UtilParameters.SyncDataBoolNames[i]);
+                    AddBoolParameter(animCtrl, vrcParameters, UtilParameters.SyncDataBoolNames[i]);
                 }
-            }
 
-            var layerName = _animCtrl.MakeUniqueLayerName("[Laura]CompressedParams");
+            var layerName = animCtrl.MakeUniqueLayerName("[Laura]CompressedParams");
             AnimatorControllerLayer newLayer = new() {
                 name = layerName,
                 blendingMode = AnimatorLayerBlendingMode.Override,
@@ -367,7 +211,7 @@ namespace ParamComp.Editor
                 }
             };
             AssetDatabase.AddObjectToAsset(newLayer.stateMachine, animCtrlPath);
-            _animCtrl.AddLayer(newLayer);
+            animCtrl.AddLayer(newLayer);
 
             var entryState = newLayer.stateMachine.AddState("Entry Selector", new(0, 60));
             entryState.writeDefaultValues = false;
@@ -380,7 +224,7 @@ namespace ParamComp.Editor
             return (localMachine, remoteMachine);
         }
 
-        private void ProcessParams(AnimatorStateMachine localMachine, AnimatorStateMachine remoteMachine,
+        private static void ProcessParams(AnimatorController animCtrl, AnimatorStateMachine localMachine, AnimatorStateMachine remoteMachine,
             List<string[]> boolBatches, (string,VRCExpressionParameters.ValueType)[] numParams, IEnumerable<UtilParameterInfo> paramsToProcess
         ) {
             foreach (var param in paramsToProcess) {
@@ -423,16 +267,16 @@ namespace ParamComp.Editor
                     var (name, type) = numParams[i];
 
                     if (type == VRCExpressionParameters.ValueType.Int)
-                        AddIntCopy(setDriver, getDriver, name);
+                        AddIntCopy(animCtrl, setDriver, getDriver, name);
                     else
-                        AddFloatCopy(setDriver, getDriver, name);
+                        AddFloatCopy(animCtrl, setDriver, getDriver, name);
                 }
 
                 if (i < boolBatches.Count()) {
                     var batch = boolBatches[i];
 
                     for (var batchIdx = 0; batchIdx < batch.Length; batchIdx++) {
-                        AddBoolCopy(setDriver, getDriver, batch[batchIdx], batchIdx);
+                        AddBoolCopy(animCtrl, setDriver, getDriver, batch[batchIdx], batchIdx);
                     }
                 }
 
@@ -441,7 +285,7 @@ namespace ParamComp.Editor
             }
         }
 
-        private AnimatorStateMachine AddStateMachine(AnimatorStateMachine machine, AnimatorState entryState, bool isRemote)
+        private static AnimatorStateMachine AddStateMachine(AnimatorStateMachine machine, AnimatorState entryState, bool isRemote)
         {
             AnimatorStateMachine newMachine;
 
@@ -465,10 +309,10 @@ namespace ParamComp.Editor
             return newMachine;
         }
 
-        private void AddCredit(AnimatorStateMachine machine) =>
+        private static void AddCredit(AnimatorStateMachine machine) =>
             machine.AddStateMachine("Laura's Param Compression\nDiscord: LauraRozier", new(-300, -140));
 
-        private AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorState dstState, bool hasExitTime)
+        private static AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorState dstState, bool hasExitTime)
         {
             var trans = srcState.AddTransition(dstState);
             trans.hasExitTime = hasExitTime;
@@ -479,7 +323,7 @@ namespace ParamComp.Editor
             return trans;
         }
 
-        private AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorStateMachine  dstMachine, bool hasExitTime)
+        private static AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorStateMachine  dstMachine, bool hasExitTime)
         {
             var trans = srcState.AddTransition(dstMachine);
             trans.hasExitTime = hasExitTime;
@@ -490,13 +334,13 @@ namespace ParamComp.Editor
             return trans;
         }
 
-        private void AddIntParameter(string name)
+        private static void AddIntParameter(AnimatorController animCtrl, VRCExpressionParameters vrcParameters, string name)
         {
-            if (!_animCtrl.parameters.Any(x => x.name == name))
-                _animCtrl.AddParameter(name, AnimatorControllerParameterType.Int);
+            if (!animCtrl.parameters.Any(x => x.name == name))
+                animCtrl.AddParameter(name, AnimatorControllerParameterType.Int);
 
-            if (!_vrcParameters.parameters.Any(x => x.name == name)) {
-                List<VRCExpressionParameters.Parameter> syncedParamsList = new(_vrcParameters.parameters) {
+            if (!vrcParameters.parameters.Any(x => x.name == name)) {
+                List<VRCExpressionParameters.Parameter> syncedParamsList = new(vrcParameters.parameters) {
                     new() {
                         name = name,
                         valueType = VRCExpressionParameters.ValueType.Int,
@@ -505,18 +349,18 @@ namespace ParamComp.Editor
                         networkSynced = true
                     }
                 };
-                _vrcParameters.parameters = syncedParamsList.ToArray();
-                EditorUtility.SetDirty(_vrcParameters);
+                vrcParameters.parameters = syncedParamsList.ToArray();
+                EditorUtility.SetDirty(vrcParameters);
             }
         }
 
-        private void AddBoolParameter(string name)
+        private static void AddBoolParameter(AnimatorController animCtrl, VRCExpressionParameters vrcParameters, string name)
         {
-            if (!_animCtrl.parameters.Any(x => x.name == name))
-                _animCtrl.AddParameter(name, AnimatorControllerParameterType.Bool);
+            if (!animCtrl.parameters.Any(x => x.name == name))
+                animCtrl.AddParameter(name, AnimatorControllerParameterType.Bool);
 
-            if (!_vrcParameters.parameters.Any(x => x.name == name)) {
-                List<VRCExpressionParameters.Parameter> syncedParamsList = new(_vrcParameters.parameters) {
+            if (!vrcParameters.parameters.Any(x => x.name == name)) {
+                List<VRCExpressionParameters.Parameter> syncedParamsList = new(vrcParameters.parameters) {
                     new() {
                         name = name,
                         valueType = VRCExpressionParameters.ValueType.Bool,
@@ -525,12 +369,12 @@ namespace ParamComp.Editor
                         networkSynced = true
                     }
                 };
-                _vrcParameters.parameters = syncedParamsList.ToArray();
-                EditorUtility.SetDirty(_vrcParameters);
+                vrcParameters.parameters = syncedParamsList.ToArray();
+                EditorUtility.SetDirty(vrcParameters);
             }
         }
 
-        private (AnimatorState, VRCAvatarParameterDriver) AddState(AnimatorStateMachine machine, int idx, Vector2 pos, bool isRemote)
+        private static (AnimatorState, VRCAvatarParameterDriver) AddState(AnimatorStateMachine machine, int idx, Vector2 pos, bool isRemote)
         {
             var state = isRemote
                 ? machine.AddState($"Remote Get #{idx}", pos)
@@ -549,10 +393,10 @@ namespace ParamComp.Editor
             return (state, driver);
         }
 
-        private void AddIntCopy(VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName)
+        private static void AddIntCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName)
         {
-            if (!_animCtrl.parameters.Any(x => x.name == paramName))
-                _animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Int);
+            if (!animCtrl.parameters.Any(x => x.name == paramName))
+                animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Int);
 
             setDriver.parameters.Add(new() {
                 type = VRC_AvatarParameterDriver.ChangeType.Copy,
@@ -566,10 +410,10 @@ namespace ParamComp.Editor
             });
         }
 
-        private void AddFloatCopy(VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName)
+        private static void AddFloatCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName)
         {
-            if (!_animCtrl.parameters.Any(x => x.name == paramName))
-                _animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Float);
+            if (!animCtrl.parameters.Any(x => x.name == paramName))
+                animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Float);
 
             setDriver.parameters.Add(new() {
                 type = VRC_AvatarParameterDriver.ChangeType.Copy,
@@ -593,10 +437,10 @@ namespace ParamComp.Editor
             });
         }
 
-        private void AddBoolCopy(VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName, int destIdx)
+        private static void AddBoolCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName, int destIdx)
         {
-            if (!_animCtrl.parameters.Any(x => x.name == paramName))
-                _animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Bool);
+            if (!animCtrl.parameters.Any(x => x.name == paramName))
+                animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Bool);
 
             setDriver.parameters.Add(new() {
                 type = VRC_AvatarParameterDriver.ChangeType.Copy,
