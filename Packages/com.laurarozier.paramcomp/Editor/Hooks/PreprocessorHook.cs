@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -35,8 +36,20 @@ namespace ParamComp.Editor.Hooks
                 ? AssetDatabase.LoadAssetAtPath<AnimatorController>(AssetDatabase.GetAssetPath(runtimeCtrl))
                 : null;
 
-            Debug.Log($"Laura Testing:\n- Avatar Parameters = {paramDef.name}\n- Avatar FX Controller = {animCtrl.name}");
+            StringBuilder sb = new();
+            sb.AppendLine("Laura Testing:");
+            sb.AppendLine($"- Avatar FX Controller = {animCtrl.name}");
+            sb.AppendLine($"- Avatar Parameters = {paramDef.name}");
+            sb.AppendLine("- Synced Params:");
 
+            foreach (var param in paramDef.parameters)
+            {
+                if (!param.networkSynced) continue;
+
+                sb.AppendLine($"  > {param.name} [{param.valueType}]");
+            }
+
+            Debug.Log(sb.ToString());
             return true;
         }
     }
