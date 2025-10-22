@@ -19,7 +19,7 @@ namespace ParamComp.Editor
         }
 
         public static bool ShouldProcess(GameObject go) =>
-            !Application.isPlaying && !_objStates.Contains(go.transform);
+            !Application.isPlaying || !_objStates.Contains(go.transform);
 
         public static void SetProcessed(GameObject go)
         {
