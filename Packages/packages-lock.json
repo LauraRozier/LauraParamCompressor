@@ -231,9 +231,9 @@
       "depth": 1,
       "source": "registry",
       "dependencies": {
-        "com.unity.modules.subsystems": "1.0.0",
         "com.unity.modules.vr": "1.0.0",
         "com.unity.modules.xr": "1.0.0",
+        "com.unity.modules.subsystems": "1.0.0",
         "com.unity.xr.legacyinputhelpers": "2.1.7"
       },
       "url": "https://packages.unity.com"
@@ -262,6 +262,18 @@
         "com.unity.nuget.newtonsoft-json": "2.0.2"
       },
       "hash": "681693b1ebf995f6d6f7e9bfdfda41e316623bbf"
+    },
+    "com.vrcfury.temp": {
+      "version": "file:com.vrcfury.temp",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
+    "com.vrcfury.vrcfury": {
+      "version": "file:com.vrcfury.vrcfury",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
     },
     "com.vrchat.avatars": {
       "version": "file:com.vrchat.avatars",
@@ -300,6 +312,12 @@
       "dependencies": {
         "com.unity.nuget.newtonsoft-json": "3.0.2"
       }
+    },
+    "vrchat.blackstartx.gesture-manager": {
+      "version": "file:vrchat.blackstartx.gesture-manager",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
     },
     "com.unity.modules.ai": {
       "version": "1.0.0",

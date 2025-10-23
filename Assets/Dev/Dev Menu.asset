@@ -12,5 +12,5 @@ MonoBehaviour:
   m_Script: {fileID: -340790334, guid: 67cc4cb7839cd3741b63733d5adf0442, type: 3}
   m_Name: Dev Menu
   m_EditorClassIdentifier: 
-  Parameters: {fileID: 0}
+  Parameters: {fileID: 11400000, guid: 92102c551aa4e0347b810ce740c79ed3, type: 2}
   controls: []

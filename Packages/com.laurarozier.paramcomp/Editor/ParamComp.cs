@@ -136,7 +136,7 @@ namespace ParamComp.Editor
 
     internal class ParamComp {
 
-        internal static void PerformCompression(UtilParameters exprParams, AnimatorController animCtrl, VRCExpressionParameters vrcParameters)
+        internal static void PerformCompression(UtilParameters exprParams, AnimatorController animCtrl, VRCExpressionParameters vrcParameters, bool isBuildTime = false)
         {
             if (!exprParams.HasParamsToOptimize()) return;
 
@@ -153,7 +153,9 @@ namespace ParamComp.Editor
             var animCtrlPath = AssetDatabase.GetAssetPath(animCtrl);
             var vrcParametersPath = AssetDatabase.GetAssetPath(vrcParameters);
 
-            BackupOriginals(animCtrlPath, vrcParametersPath);
+            if (!isBuildTime)
+                BackupOriginals(animCtrlPath, vrcParametersPath);
+
             var (localMachine, remoteMachine) = AddRequiredObjects(animCtrl, vrcParameters, animCtrlPath, numParams.Any(), boolParams.Any());
             ProcessParams(animCtrl, localMachine, remoteMachine, boolBatches, numParams.Select(x => (x.SourceParam.name, x.SourceParam.valueType)).ToArray(), paramsToOptimize);
 

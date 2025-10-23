@@ -1,5 +1,4 @@
 #if UNITY_EDITOR
-using System.Threading.Tasks;
 using UnityEditor;
 using UnityEditor.Animations;
 using UnityEngine;
@@ -10,7 +9,7 @@ namespace ParamComp.Editor
 {
     public class ParamCompManual : EditorWindow
     {
-        private static readonly Vector2 _windowSize = new Vector2(760f, 600f);
+        private static readonly Vector2 _windowSize = new(760f, 600f);
 
         private UtilParameters _exprParams = new();
         private VRCExpressionParameters _vrcParameters = null;
@@ -27,7 +26,7 @@ namespace ParamComp.Editor
 
         public void CreateGUI()
         {
-            var imguiContainer = new IMGUIContainer(() =>
+            IMGUIContainer imguiContainer = new(() =>
             {
                 EditorGUILayout.Space();
                 EditorGUI.BeginChangeCheck();
