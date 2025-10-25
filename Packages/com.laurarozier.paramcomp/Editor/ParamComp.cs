@@ -187,7 +187,8 @@ namespace ParamComp.Editor
                 animCtrl.AddParameter(UtilParameters.IsLocalName, AnimatorControllerParameterType.Bool);
 
             if (!animCtrl.parameters.Any(x => x.name == UtilParameters.SyncTrueName))
-                animCtrl.AddParameter(new AnimatorControllerParameter {
+                animCtrl.AddParameter(new AnimatorControllerParameter
+                {
                     name = animCtrl.MakeUniqueParameterName(UtilParameters.SyncTrueName),
                     type = AnimatorControllerParameterType.Bool,
                     defaultBool = true
@@ -225,8 +226,10 @@ namespace ParamComp.Editor
             newLayer.stateMachine.defaultState = entryState;
             AddCredit(newLayer.stateMachine);
 
-            var localMachine = AddStateMachine(newLayer.stateMachine, entryState, false);
-            var remoteMachine = AddStateMachine(newLayer.stateMachine, entryState, true);
+            var isLocalIsBool = animCtrl.parameters.First(x => x.name == UtilParameters.IsLocalName).type == AnimatorControllerParameterType.Bool;
+
+            var localMachine = AddStateMachine(newLayer.stateMachine, entryState, false, isLocalIsBool);
+            var remoteMachine = AddStateMachine(newLayer.stateMachine, entryState, true, isLocalIsBool);
 
             return (localMachine, remoteMachine);
         }
@@ -296,7 +299,7 @@ namespace ParamComp.Editor
             }
         }
 
-        private static AnimatorStateMachine AddStateMachine(AnimatorStateMachine machine, AnimatorState entryState, bool isRemote)
+        private static AnimatorStateMachine AddStateMachine(AnimatorStateMachine machine, AnimatorState entryState, bool isRemote, bool isLocalIsBool)
         {
             AnimatorStateMachine newMachine;
 
@@ -316,7 +319,12 @@ namespace ParamComp.Editor
 
             AddCredit(newMachine);
             var trans = AddTransition(entryState, newMachine, false);
-            trans.AddCondition(isRemote ? AnimatorConditionMode.IfNot : AnimatorConditionMode.If, 0, UtilParameters.IsLocalName);
+
+            if (isLocalIsBool)
+                trans.AddCondition(isRemote ? AnimatorConditionMode.IfNot : AnimatorConditionMode.If, 0, UtilParameters.IsLocalName);
+            else // Fix for VRCFury fuckery, converting IsLocal to a float
+                trans.AddCondition(isRemote ? AnimatorConditionMode.Less : AnimatorConditionMode.Greater, isRemote ? 0.992f : 0.008f, UtilParameters.IsLocalName);
+
             return newMachine;
         }
 
