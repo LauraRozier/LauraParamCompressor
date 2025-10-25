@@ -9,6 +9,9 @@ namespace ParamComp.Editor.Components
     public class ParamCompSettingsEditor : UnityEditor.Editor
     {
         private SerializedProperty _ExcludedPropertyNamesProperty;
+        private SerializedProperty _ExcludedPropertyNamePrefixesProperty;
+        private SerializedProperty _ExcludedPropertyNameSuffixesProperty;
+        private SerializedProperty _ExcludeVRCFTProperty;
         private SerializedProperty _ExcludeBoolsProperty;
         private SerializedProperty _ExcludeIntsProperty;
         private SerializedProperty _ExcludeFloatsProperty;
@@ -18,6 +21,9 @@ namespace ParamComp.Editor.Components
         public void OnEnable()
         {
             _ExcludedPropertyNamesProperty = serializedObject.FindProperty("ExcludedPropertyNames");
+            _ExcludedPropertyNamePrefixesProperty = serializedObject.FindProperty("ExcludedPropertyNamePrefixes");
+            _ExcludedPropertyNameSuffixesProperty = serializedObject.FindProperty("ExcludedPropertyNameSuffixes");
+            _ExcludeVRCFTProperty = serializedObject.FindProperty("ExcludeVRCFT");
             _ExcludeBoolsProperty = serializedObject.FindProperty("ExcludeBools");
             _ExcludeIntsProperty = serializedObject.FindProperty("ExcludeInts");
             _ExcludeFloatsProperty = serializedObject.FindProperty("ExcludeFloats");
@@ -40,13 +46,24 @@ namespace ParamComp.Editor.Components
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Excluded Property Names");
             EditorGUILayout.PropertyField(_ExcludedPropertyNamesProperty, new GUIContent(string.Empty,
-                "These prarameters will be excluded from the compressor. Keep in mind that any VRChat default parameters are excluded by default."
+                "These parameters will be excluded from the compressor. Keep in mind that any VRChat default parameters are excluded by default."
+            ), true);
+            EditorGUILayout.LabelField("Excluded Property Name Prefixes");
+            EditorGUILayout.PropertyField(_ExcludedPropertyNamePrefixesProperty, new GUIContent(string.Empty,
+                "Parameters STARTING with these strings will be excluded from the compressor. Keep in mind that any VRChat default parameters are excluded by default."
+            ), true);
+            EditorGUILayout.LabelField("Excluded Property Name Suffixes");
+            EditorGUILayout.PropertyField(_ExcludedPropertyNameSuffixesProperty, new GUIContent(string.Empty,
+                "Parameters ENDING with these strings will be excluded from the compressor. Keep in mind that any VRChat default parameters are excluded by default."
             ), true);
 
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(_ExcludeBoolsProperty, new GUIContent("Exclude Bools", "Exclude all Boolean properties from the compressor."), true);
-            EditorGUILayout.PropertyField(_ExcludeIntsProperty, new GUIContent("Exclude Ints", "Exclude all Integer properties from the compressor."), true);
-            EditorGUILayout.PropertyField(_ExcludeFloatsProperty, new GUIContent("Exclude Floats", "Exclude all Float properties from the compressor."), true);
+            EditorGUILayout.PropertyField(_ExcludeVRCFTProperty, new GUIContent("Exclude VRCFT parameters", "Exclude important VRCFaceTracking (Jerry's Templates) parameters from the compressor."), true);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.PropertyField(_ExcludeBoolsProperty, new GUIContent("Exclude Bools", "Exclude all Boolean parameters from the compressor."), true);
+            EditorGUILayout.PropertyField(_ExcludeIntsProperty, new GUIContent("Exclude Ints", "Exclude all Integer parameters from the compressor."), true);
+            EditorGUILayout.PropertyField(_ExcludeFloatsProperty, new GUIContent("Exclude Floats", "Exclude all Float parameters from the compressor."), true);
 
             EditorGUILayout.Space();
             EditorGUILayout.PropertyField(_BoolsPerStateProperty, new GUIContent("Bools Per State", "Number of Booleans to sync per state."), true);

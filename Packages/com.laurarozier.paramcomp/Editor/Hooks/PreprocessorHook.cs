@@ -84,6 +84,25 @@ namespace ParamComp.Editor.Hooks
                 if (pcSettings.ExcludedPropertyNames.Contains(param.SourceParam.name))
                     param.EnableProcessing = false;
 
+                if (pcSettings.ExcludeVRCFT && (
+                    param.SourceParam.name.StartsWith("FT/v1/", StringComparison.InvariantCultureIgnoreCase) ||
+                    param.SourceParam.name.StartsWith("FT/v2/", StringComparison.InvariantCultureIgnoreCase) ||
+                    param.SourceParam.name.StartsWith("FT/v3/", StringComparison.InvariantCultureIgnoreCase) // Why not future-proof a little
+                ))
+                    param.EnableProcessing = false;
+
+                foreach (var prefix in pcSettings.ExcludedPropertyNamePrefixes)
+                {
+                    if (param.SourceParam.name.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase))
+                        param.EnableProcessing = false;
+                }
+
+                foreach (var suffix in pcSettings.ExcludedPropertyNameSuffixes)
+                {
+                    if (param.SourceParam.name.EndsWith(suffix, StringComparison.InvariantCultureIgnoreCase))
+                        param.EnableProcessing = false;
+                }
+
                 if (pcSettings.ExcludeBools && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Bool)
                     param.EnableProcessing = false;
 

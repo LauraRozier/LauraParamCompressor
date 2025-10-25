@@ -7,6 +7,9 @@ namespace ParamComp.Runtime.Components
     public class ParamCompSettings : MonoBehaviour
     {
         public string[] ExcludedPropertyNames = Array.Empty<string>();
+        public string[] ExcludedPropertyNamePrefixes = Array.Empty<string>();
+        public string[] ExcludedPropertyNameSuffixes = Array.Empty<string>();
+        public bool ExcludeVRCFT = true;
         public bool ExcludeBools = false;
         public bool ExcludeInts = false;
         public bool ExcludeFloats = false;
