@@ -758,6 +758,8 @@ MonoBehaviour:
   ExcludeBools: 0
   ExcludeInts: 0
   ExcludeFloats: 0
+  BoolsPerState: 16
+  NumbersPerState: 2
 --- !u!114 &1820934919
 MonoBehaviour:
   m_ObjectHideFlags: 0

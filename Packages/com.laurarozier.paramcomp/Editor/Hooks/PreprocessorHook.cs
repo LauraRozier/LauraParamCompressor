@@ -74,6 +74,8 @@ namespace ParamComp.Editor.Hooks
                 : null;
             UtilParameters exprParams = new();
             exprParams.SetValues(paramDef);
+            var boolsPerState = pcSettings.BoolsPerState;
+            var numbersPerState = pcSettings.NumbersPerState;
 
             for (int i = 0; i < exprParams.Parameters.Count; i++)
             {
@@ -96,7 +98,7 @@ namespace ParamComp.Editor.Hooks
 
             // Remove our settings component so it doesn't get uploaded
             UnityEngine.Object.DestroyImmediate(pcSettings);
-            ParamComp.PerformCompression(exprParams, animCtrl, paramDef, true);
+            ParamComp.PerformCompression(exprParams, animCtrl, paramDef, true, boolsPerState, numbersPerState);
             return true;
         }
 

@@ -12,6 +12,8 @@ namespace ParamComp.Editor.Components
         private SerializedProperty _ExcludeBoolsProperty;
         private SerializedProperty _ExcludeIntsProperty;
         private SerializedProperty _ExcludeFloatsProperty;
+        private SerializedProperty _BoolsPerStateProperty;
+        private SerializedProperty _NumbersPerStateProperty;
 
         public void OnEnable()
         {
@@ -19,6 +21,8 @@ namespace ParamComp.Editor.Components
             _ExcludeBoolsProperty = serializedObject.FindProperty("ExcludeBools");
             _ExcludeIntsProperty = serializedObject.FindProperty("ExcludeInts");
             _ExcludeFloatsProperty = serializedObject.FindProperty("ExcludeFloats");
+            _BoolsPerStateProperty = serializedObject.FindProperty("BoolsPerState");
+            _NumbersPerStateProperty = serializedObject.FindProperty("NumbersPerState");
         }
 
         public override void OnInspectorGUI()
@@ -43,6 +47,10 @@ namespace ParamComp.Editor.Components
             EditorGUILayout.PropertyField(_ExcludeBoolsProperty, new GUIContent("Exclude Bools", "Exclude all Boolean properties from the compressor."), true);
             EditorGUILayout.PropertyField(_ExcludeIntsProperty, new GUIContent("Exclude Ints", "Exclude all Integer properties from the compressor."), true);
             EditorGUILayout.PropertyField(_ExcludeFloatsProperty, new GUIContent("Exclude Floats", "Exclude all Float properties from the compressor."), true);
+
+            EditorGUILayout.Space();
+            EditorGUILayout.PropertyField(_BoolsPerStateProperty, new GUIContent("Bools Per State", "Number of Booleans to sync per state."), true);
+            EditorGUILayout.PropertyField(_NumbersPerStateProperty, new GUIContent("Numbers Per State", "Number of Numbers (Ints/Floats) to sync per state."), true);
 
             serializedObject.ApplyModifiedProperties();
         }

@@ -21,21 +21,11 @@ namespace ParamComp.Editor
 
     internal class UtilParameters
     {
-        public const int BoolBatchSize = 8;
         public const string IsLocalName = "IsLocal";
         public const string SyncPointerName = "Laura/Sync/Ptr";
-        public const string SyncDataNumName = "Laura/Sync/DataNum";
         public const string SyncTrueName = "Laura/Sync/True";
-        public readonly static string[] SyncDataBoolNames = new[] {
-            "Laura/Sync/DataBool0",
-            "Laura/Sync/DataBool1",
-            "Laura/Sync/DataBool2",
-            "Laura/Sync/DataBool3",
-            "Laura/Sync/DataBool4",
-            "Laura/Sync/DataBool5",
-            "Laura/Sync/DataBool6",
-            "Laura/Sync/DataBool7",
-        };
+        public const string SyncDataNumName = "Laura/Sync/DataNum";
+        public const string SyncDataBoolName = "Laura/Sync/DataBool";
         public readonly static string[] VRChatParams = new[] {
             IsLocalName, "PreviewMode", "Viseme", "Voice", "GestureLeft", "GestureRight", "GestureLeftWeight",
             "GestureRightWeight", "AngularY", "VelocityX", "VelocityY", "VelocityZ", "VelocityMagnitude",
@@ -52,10 +42,10 @@ namespace ParamComp.Editor
             foreach (var param in vrcParams.parameters) {
                 // Skip any VRChat default or non-synced parameter
                 if (VRChatParams.Contains(param.name) ||
-                    SyncDataBoolNames.Contains(param.name) ||
                     SyncPointerName.Equals(param.name, StringComparison.InvariantCulture) ||
-                    SyncDataNumName.Equals(param.name, StringComparison.InvariantCulture) ||
                     SyncTrueName.Equals(param.name, StringComparison.InvariantCulture) ||
+                    param.name.StartsWith(SyncDataNumName, StringComparison.InvariantCulture) ||
+                    param.name.StartsWith(SyncDataBoolName, StringComparison.InvariantCulture) ||
                     !param.networkSynced) continue;
 
                 Parameters.Add(new() {
@@ -68,21 +58,25 @@ namespace ParamComp.Editor
         public bool HasParamsToOptimize() =>
             Parameters.Where(x => x.EnableProcessing).Any();
 
-        public List<UtilParameterInfo> GetBoolParams()
+        public List<UtilParameterInfo> GetBoolParams(int boolsPerState)
         {
             var result = Parameters.Where(x =>
                 x.EnableProcessing &&
                 x.SourceParam.valueType == VRCExpressionParameters.ValueType.Bool
             ).ToList();
-            if (result.Count <= BoolBatchSize) result.Clear();
+            if (result.Count <= boolsPerState) result.Clear();
             return result;
         }
 
-        public List<UtilParameterInfo> GetNumericParams() =>
-            Parameters.Where(x =>
+        public List<UtilParameterInfo> GetNumericParams(int numbersPerState)
+        {
+            var result = Parameters.Where(x =>
                 x.EnableProcessing &&
                 x.SourceParam.valueType != VRCExpressionParameters.ValueType.Bool
             ).ToList();
+            if (result.Count <= numbersPerState) result.Clear();
+            return result;
+        }
     }
 
     internal class ParamField : VisualElement
@@ -136,17 +130,24 @@ namespace ParamComp.Editor
 
     internal class ParamComp {
 
-        internal static void PerformCompression(UtilParameters exprParams, AnimatorController animCtrl, VRCExpressionParameters vrcParameters, bool isBuildTime = false)
+        internal static void PerformCompression(UtilParameters exprParams, AnimatorController animCtrl, VRCExpressionParameters vrcParameters,
+            bool isBuildTime = false, int boolsPerState = 8, int numbersPerState = 1)
         {
             if (!exprParams.HasParamsToOptimize()) return;
 
-            var boolParams = exprParams.GetBoolParams();
-            var numParams = exprParams.GetNumericParams();
+            var boolParams = exprParams.GetBoolParams(boolsPerState);
             var boolBatches = boolParams.Select((x, idx) => (x.SourceParam.name, idx))
-                .GroupBy(x => x.idx / UtilParameters.BoolBatchSize)
-                .Select(g => g.Select(x => x.name).ToArray()).ToList();
+                .GroupBy(x => x.idx / boolsPerState)
+                .Select(g => g.Select(x => x.name).ToArray()).ToArray();
+
+            var numParams = exprParams.GetNumericParams(numbersPerState);
+            var numBatches = numParams.Select((x, idx) => (idx, x.SourceParam.name, x.SourceParam.valueType))
+                .GroupBy(x => x.idx / numbersPerState)
+                .Select(g => g.Select(x => (x.name, x.valueType)).ToArray()).ToArray();
+
             var paramsToOptimize = numParams.Concat(boolParams);
-            var bitsToAdd = 8 + (numParams.Any() ? 8 : 0) + (boolParams.Any() ? UtilParameters.BoolBatchSize : 0);
+            // Size of the pointer + bools per state + 8 * number per state
+            var bitsToAdd = 8 + (boolParams.Any() ? boolsPerState : 0) + (numParams.Any() ? (8 * numbersPerState) : 0);
             var bitsToRemove = paramsToOptimize.Sum(p => VRCExpressionParameters.TypeCost(p.SourceParam.valueType));
             if (bitsToAdd >= bitsToRemove) return; // Don't optimize if it won't save space
 
@@ -156,8 +157,8 @@ namespace ParamComp.Editor
             if (!isBuildTime)
                 BackupOriginals(animCtrlPath, vrcParametersPath);
 
-            var (localMachine, remoteMachine) = AddRequiredObjects(animCtrl, vrcParameters, animCtrlPath, numParams.Any(), boolParams.Any());
-            ProcessParams(animCtrl, localMachine, remoteMachine, boolBatches, numParams.Select(x => (x.SourceParam.name, x.SourceParam.valueType)).ToArray(), paramsToOptimize);
+            var (localMachine, remoteMachine) = AddRequiredObjects(animCtrl, vrcParameters, animCtrlPath, numParams.Any(), boolParams.Any(), boolsPerState, numbersPerState);
+            ProcessParams(animCtrl, localMachine, remoteMachine, boolBatches, numBatches, paramsToOptimize);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
@@ -179,7 +180,8 @@ namespace ParamComp.Editor
             AssetDatabase.SaveAssets();
         }
 
-        private static (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(AnimatorController animCtrl, VRCExpressionParameters vrcParameters, string animCtrlPath, bool hasNumParams, bool hasBoolBatches)
+        private static (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(AnimatorController animCtrl, VRCExpressionParameters vrcParameters,
+            string animCtrlPath, bool hasNumBatches, bool hasBoolBatches, int boolsPerState, int numbersPerState)
         {
             if (!animCtrl.parameters.Any(x => x.name == UtilParameters.IsLocalName))
                 animCtrl.AddParameter(UtilParameters.IsLocalName, AnimatorControllerParameterType.Bool);
@@ -192,11 +194,14 @@ namespace ParamComp.Editor
                 });
 
             AddIntParameter(animCtrl, vrcParameters, UtilParameters.SyncPointerName);
-            if (hasNumParams) AddIntParameter(animCtrl, vrcParameters, UtilParameters.SyncDataNumName);
+            if (hasNumBatches)
+                for (int i = 0; i < numbersPerState; i++) {
+                    AddIntParameter(animCtrl, vrcParameters, $"{UtilParameters.SyncDataNumName}{i}");
+                }
 
             if (hasBoolBatches)
-                for (int i = 0; i < UtilParameters.BoolBatchSize; i++) {
-                    AddBoolParameter(animCtrl, vrcParameters, UtilParameters.SyncDataBoolNames[i]);
+                for (int i = 0; i < boolsPerState; i++) {
+                    AddBoolParameter(animCtrl, vrcParameters, $"{UtilParameters.SyncDataBoolName}{i}");
                 }
 
             var layerName = animCtrl.MakeUniqueLayerName("[Laura]CompressedParams");
@@ -227,7 +232,7 @@ namespace ParamComp.Editor
         }
 
         private static void ProcessParams(AnimatorController animCtrl, AnimatorStateMachine localMachine, AnimatorStateMachine remoteMachine,
-            List<string[]> boolBatches, (string,VRCExpressionParameters.ValueType)[] numParams, IEnumerable<UtilParameterInfo> paramsToProcess
+            string[][] boolBatches, (string,VRCExpressionParameters.ValueType)[][] numBatches, IEnumerable<UtilParameterInfo> paramsToProcess
         ) {
             foreach (var param in paramsToProcess) {
                 param.SourceParam.networkSynced = false;
@@ -235,7 +240,7 @@ namespace ParamComp.Editor
 
             AnimatorState prevSetState = null;
             Vector2 currentSetPos = new(0, 60), currentGetPos = new(0, 60);
-            var stepCount = Math.Max(boolBatches.Count(), numParams.Length);
+            var stepCount = Math.Max(boolBatches.Count(), numBatches.Count());
 
             for (int i = 0; i < stepCount; i++) {
                 if (i == stepCount-1) currentSetPos.x -= 200;
@@ -265,13 +270,17 @@ namespace ParamComp.Editor
                 if (i == stepCount-1) AddTransition(setState, localMachine.defaultState, true);
                 prevSetState = setState;
 
-                if (i < numParams.Length) {
-                    var (name, type) = numParams[i];
+                if (i < numBatches.Count()) {
+                    var batch = numBatches[i];
 
-                    if (type == VRCExpressionParameters.ValueType.Int)
-                        AddIntCopy(animCtrl, setDriver, getDriver, name);
-                    else
-                        AddFloatCopy(animCtrl, setDriver, getDriver, name);
+                    for (var batchIdx = 0; batchIdx < batch.Length; batchIdx++) {
+                        var (name, type) = batch[batchIdx];
+
+                        if (type == VRCExpressionParameters.ValueType.Int)
+                            AddIntCopy(animCtrl, setDriver, getDriver, name, batchIdx);
+                        else
+                            AddFloatCopy(animCtrl, setDriver, getDriver, name, batchIdx);
+                    }
                 }
 
                 if (i < boolBatches.Count()) {
@@ -342,15 +351,13 @@ namespace ParamComp.Editor
                 animCtrl.AddParameter(name, AnimatorControllerParameterType.Int);
 
             if (!vrcParameters.parameters.Any(x => x.name == name)) {
-                List<VRCExpressionParameters.Parameter> syncedParamsList = new(vrcParameters.parameters) {
-                    new() {
-                        name = name,
-                        valueType = VRCExpressionParameters.ValueType.Int,
-                        saved = false,
-                        defaultValue = 0,
-                        networkSynced = true
-                    }
-                };
+                List<VRCExpressionParameters.Parameter> syncedParamsList = new(vrcParameters.parameters) {new() {
+                    name = name,
+                    valueType = VRCExpressionParameters.ValueType.Int,
+                    saved = false,
+                    defaultValue = 0,
+                    networkSynced = true
+                }};
                 vrcParameters.parameters = syncedParamsList.ToArray();
                 EditorUtility.SetDirty(vrcParameters);
             }
@@ -362,15 +369,13 @@ namespace ParamComp.Editor
                 animCtrl.AddParameter(name, AnimatorControllerParameterType.Bool);
 
             if (!vrcParameters.parameters.Any(x => x.name == name)) {
-                List<VRCExpressionParameters.Parameter> syncedParamsList = new(vrcParameters.parameters) {
-                    new() {
-                        name = name,
-                        valueType = VRCExpressionParameters.ValueType.Bool,
-                        saved = false,
-                        defaultValue = 0,
-                        networkSynced = true
-                    }
-                };
+                List<VRCExpressionParameters.Parameter> syncedParamsList = new(vrcParameters.parameters) {new() {
+                    name = name,
+                    valueType = VRCExpressionParameters.ValueType.Bool,
+                    saved = false,
+                    defaultValue = 0,
+                    networkSynced = true
+                }};
                 vrcParameters.parameters = syncedParamsList.ToArray();
                 EditorUtility.SetDirty(vrcParameters);
             }
@@ -395,31 +400,33 @@ namespace ParamComp.Editor
             return (state, driver);
         }
 
-        private static void AddIntCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName)
+        private static void AddIntCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName, int destIdx)
         {
             if (!animCtrl.parameters.Any(x => x.name == paramName))
                 animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Int);
 
+            var syncParamName = $"{UtilParameters.SyncDataNumName}{destIdx}";
             setDriver.parameters.Add(new() {
                 type = VRC_AvatarParameterDriver.ChangeType.Copy,
-                name = UtilParameters.SyncDataNumName,
+                name = syncParamName,
                 source = paramName
             });
             getDriver.parameters.Add(new() {
                 type = VRC_AvatarParameterDriver.ChangeType.Copy,
                 name = paramName,
-                source = UtilParameters.SyncDataNumName
+                source = syncParamName
             });
         }
 
-        private static void AddFloatCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName)
+        private static void AddFloatCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName, int destIdx)
         {
             if (!animCtrl.parameters.Any(x => x.name == paramName))
                 animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Float);
 
+            var syncParamName = $"{UtilParameters.SyncDataNumName}{destIdx}";
             setDriver.parameters.Add(new() {
                 type = VRC_AvatarParameterDriver.ChangeType.Copy,
-                name = UtilParameters.SyncDataNumName,
+                name = syncParamName,
                 source = paramName,
                 sourceMin = -1,
                 sourceMax = 1,
@@ -430,7 +437,7 @@ namespace ParamComp.Editor
             getDriver.parameters.Add(new() {
                 type = VRC_AvatarParameterDriver.ChangeType.Copy,
                 name = paramName,
-                source = UtilParameters.SyncDataNumName,
+                source = syncParamName,
                 sourceMin = 0,
                 sourceMax = 254,
                 destMin = -1,
@@ -444,15 +451,16 @@ namespace ParamComp.Editor
             if (!animCtrl.parameters.Any(x => x.name == paramName))
                 animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Bool);
 
+            var syncParamName = $"{UtilParameters.SyncDataBoolName}{destIdx}";
             setDriver.parameters.Add(new() {
                 type = VRC_AvatarParameterDriver.ChangeType.Copy,
-                name = UtilParameters.SyncDataBoolNames[destIdx],
+                name = syncParamName,
                 source = paramName
             });
             getDriver.parameters.Add(new() {
                 type = VRC_AvatarParameterDriver.ChangeType.Copy,
                 name = paramName,
-                source = UtilParameters.SyncDataBoolNames[destIdx]
+                source = syncParamName
             });
         }
     }
