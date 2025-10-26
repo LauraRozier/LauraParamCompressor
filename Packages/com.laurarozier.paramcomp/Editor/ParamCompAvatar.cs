@@ -23,6 +23,8 @@ namespace ParamComp.Editor
         private readonly UtilParameters _exprParams = new();
         private VRCExpressionParameters _vrcParameters = null;
         private AnimatorController _animCtrl = null;
+        private int _boolsPerState = 8;
+        private int _numbersPerState = 1;
         private ListView _list;
 
         [MenuItem("Tools/LauraRozier/Parameter Compressor/Avatar")]
@@ -62,8 +64,19 @@ namespace ParamComp.Editor
                 EditorGUILayout.ObjectField("FX Controller", _animCtrl, typeof(RuntimeAnimatorController), true);
                 GUI.enabled = true;
 
+                EditorGUILayout.Space();
+                _boolsPerState = EditorGUILayout.IntSlider(
+                    new GUIContent("Bools Per State", "Number of Booleans to sync per state."),
+                    _boolsPerState, 8, 32
+                );
+                _numbersPerState = EditorGUILayout.IntSlider(
+                    new GUIContent("Numbers Per State", "Number of Numbers (Ints/Floats) to sync per state."),
+                    _numbersPerState, 1, 8
+                );
+                EditorGUILayout.Space();
+
                 if (GUILayout.Button("Compress", GUILayout.ExpandWidth(false))) {
-                    ParamComp.PerformCompression(_exprParams, _animCtrl, _vrcParameters);
+                    ParamComp.PerformCompression(_exprParams, _animCtrl, _vrcParameters, false, _boolsPerState, _numbersPerState);
                     UpdateSelectedAvatar();
                 }
 
@@ -109,7 +122,7 @@ namespace ParamComp.Editor
             var scrollView = new ScrollView(ScrollViewMode.Vertical);
             {
                 scrollView.style.width = 760;
-                scrollView.style.height = 420;
+                scrollView.style.height = 360;
                 scrollView.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
 
                 _list = new() {

@@ -127,7 +127,7 @@ namespace ParamComp.Editor
     internal class ParamComp {
 
         internal static void PerformCompression(UtilParameters exprParams, AnimatorController animCtrl, VRCExpressionParameters vrcParameters,
-            bool isBuildTime = false, int boolsPerState = 8, int numbersPerState = 1
+            bool isBuildTime, int boolsPerState, int numbersPerState
         ) {
             if (!exprParams.HasParamsToOptimize()) return;
 
