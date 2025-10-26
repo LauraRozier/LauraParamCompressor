@@ -13,14 +13,14 @@ namespace ParamComp.Editor
 {
     public class ParamCompAvatar : EditorWindow
     {
-        private static readonly Vector2 _windowSize = new Vector2(760f, 600f);
+        private static readonly Vector2 _windowSize = new(760f, 600f);
 
         private VRCAvatarDescriptor[] _avatars = null;
         private int _selectedAvatarId = -1;
         private VRCAvatarDescriptor _selectedAvatar = null;
         private string[] _avatarOptions = Array.Empty<string>();
         private VRCExpressionsMenu _exprMenu = null;
-        private UtilParameters _exprParams = new();
+        private readonly UtilParameters _exprParams = new();
         private VRCExpressionParameters _vrcParameters = null;
         private AnimatorController _animCtrl = null;
         private ListView _list;
@@ -32,16 +32,15 @@ namespace ParamComp.Editor
             wnd.maxSize = _windowSize;
         }
 
-        private void OnEnable() => FindAvatars();
+        private void OnEnable() =>
+            FindAvatars();
 
-        private async void OnHierarchyChange()
-        {
+        private async void OnHierarchyChange() {
             await Task.Delay(100);
             FindAvatars();
         }
 
-        public void CreateGUI()
-        {
+        public void CreateGUI() {
             var imguiContainer = new IMGUIContainer(() => {
                 EditorGUILayout.Space();
 
@@ -63,8 +62,7 @@ namespace ParamComp.Editor
                 EditorGUILayout.ObjectField("FX Controller", _animCtrl, typeof(RuntimeAnimatorController), true);
                 GUI.enabled = true;
 
-                if (GUILayout.Button("Compress", GUILayout.ExpandWidth(false)))
-                {
+                if (GUILayout.Button("Compress", GUILayout.ExpandWidth(false))) {
                     ParamComp.PerformCompression(_exprParams, _animCtrl, _vrcParameters);
                     UpdateSelectedAvatar();
                 }
@@ -127,8 +125,7 @@ namespace ParamComp.Editor
             rootVisualElement.Add(scrollView);
         }
 
-        private void FindAvatars()
-        {
+        private void FindAvatars() {
             var allAvatars = VRC.Tools.FindSceneObjectsOfTypeAll<VRCAvatarDescriptor>();
             // Select only the active avatars
             _avatars = allAvatars.Where(av => null != av && av.gameObject.activeInHierarchy).ToArray();

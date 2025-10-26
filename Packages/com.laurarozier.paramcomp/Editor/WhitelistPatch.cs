@@ -13,8 +13,7 @@ namespace ParamComp.Editor.Components
     internal static class WhitelistPatch
     {
         [InitializeOnLoadMethod]
-        private static void Init()
-        {
+        private static void Init() {
             Exception preprocessPatchEx = null;
 
             try {
@@ -55,19 +54,13 @@ namespace ParamComp.Editor.Components
             }
         }
 
-        private static string[] UpdateComponentList(string[] list) {
-            var updated = new List<string>(list);
-            updated.AddRange(new[] {
-                typeof(ParamCompSettings).FullName
-            });
-            return updated.ToArray();
-        }
+        private static string[] UpdateComponentList(string[] list) =>
+            new List<string>(list) { typeof(ParamCompSettings).FullName }.ToArray();
 
-        public static Type GetTypeFromAnyAssembly(string type) {
-            return AppDomain.CurrentDomain.GetAssemblies()
+        public static Type GetTypeFromAnyAssembly(string type) =>
+            AppDomain.CurrentDomain.GetAssemblies()
                 .Select(assembly => assembly.GetType(type))
                 .FirstOrDefault(t => t != null);
-        }
     }
 }
 #endif

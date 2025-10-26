@@ -18,8 +18,7 @@ namespace ParamComp.Editor.Components
         private SerializedProperty _BoolsPerStateProperty;
         private SerializedProperty _NumbersPerStateProperty;
 
-        public void OnEnable()
-        {
+        public void OnEnable() {
             _ExcludedPropertyNamesProperty = serializedObject.FindProperty("ExcludedPropertyNames");
             _ExcludedPropertyNamePrefixesProperty = serializedObject.FindProperty("ExcludedPropertyNamePrefixes");
             _ExcludedPropertyNameSuffixesProperty = serializedObject.FindProperty("ExcludedPropertyNameSuffixes");
@@ -31,15 +30,13 @@ namespace ParamComp.Editor.Components
             _NumbersPerStateProperty = serializedObject.FindProperty("NumbersPerState");
         }
 
-        public override void OnInspectorGUI()
-        {
+        public override void OnInspectorGUI() {
             serializedObject.Update();
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Laura's Parameter Compressor Settings");
             EditorGUILayout.HelpBox(
-                "This component requires VRCFury or Modular Avatar to be in the project, if you wish to test in in the editor.\r\n" +
-                "\r\n" +
+                "This component requires VRCFury or Modular Avatar to be in the project, if you wish to test in in the editor.\r\n\r\n" +
                 "Without these it'll only work on a test build or avatar upload.",
                 MessageType.Info);
 
@@ -58,16 +55,28 @@ namespace ParamComp.Editor.Components
             ), true);
 
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(_ExcludeVRCFTProperty, new GUIContent("Exclude VRCFT parameters", "Exclude important VRCFaceTracking (Jerry's Templates) parameters from the compressor."), true);
+            EditorGUILayout.PropertyField(_ExcludeVRCFTProperty, new GUIContent("Exclude VRCFT parameters",
+                "Exclude important VRCFaceTracking (Jerry's Templates) parameters from the compressor."
+            ), true);
 
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(_ExcludeBoolsProperty, new GUIContent("Exclude Bools", "Exclude all Boolean parameters from the compressor."), true);
-            EditorGUILayout.PropertyField(_ExcludeIntsProperty, new GUIContent("Exclude Ints", "Exclude all Integer parameters from the compressor."), true);
-            EditorGUILayout.PropertyField(_ExcludeFloatsProperty, new GUIContent("Exclude Floats", "Exclude all Float parameters from the compressor."), true);
+            EditorGUILayout.PropertyField(_ExcludeBoolsProperty, new GUIContent("Exclude Bools",
+                "Exclude all Boolean parameters from the compressor."
+            ), true);
+            EditorGUILayout.PropertyField(_ExcludeIntsProperty, new GUIContent("Exclude Ints",
+                "Exclude all Integer parameters from the compressor."
+            ), true);
+            EditorGUILayout.PropertyField(_ExcludeFloatsProperty, new GUIContent("Exclude Floats",
+                "Exclude all Float parameters from the compressor."
+            ), true);
 
             EditorGUILayout.Space();
-            EditorGUILayout.PropertyField(_BoolsPerStateProperty, new GUIContent("Bools Per State", "Number of Booleans to sync per state."), true);
-            EditorGUILayout.PropertyField(_NumbersPerStateProperty, new GUIContent("Numbers Per State", "Number of Numbers (Ints/Floats) to sync per state."), true);
+            EditorGUILayout.PropertyField(_BoolsPerStateProperty, new GUIContent("Bools Per State",
+                "Number of Booleans to sync per state."
+            ), true);
+            EditorGUILayout.PropertyField(_NumbersPerStateProperty, new GUIContent("Numbers Per State",
+                "Number of Numbers (Ints/Floats) to sync per state."
+            ), true);
 
             serializedObject.ApplyModifiedProperties();
         }

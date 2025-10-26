@@ -15,18 +15,15 @@ namespace ParamComp.Editor.Hooks
     internal class PreprocessorHook : IVRCSDKPreprocessAvatarCallback
     {
         public int callbackOrder =>
-            int.MaxValue - 110;
+            int.MaxValue - 105; // VRCFury's compressor is `int.MaxValue - 100`
 
-        public bool OnPreprocessAvatar(GameObject obj)
-        {
-            if (!StateHolder.ShouldProcess(obj))
-            {
+        public bool OnPreprocessAvatar(GameObject obj) {
+            if (!StateHolder.ShouldProcess(obj)) {
                 Debug.LogWarning("ParamComp - Skipping `PreprocessorHook` because preprocessors already ran on this object");
                 return true;
             }
 
-            if (!obj.TryGetComponent(out ParamCompSettings pcSettings))
-            {
+            if (!obj.TryGetComponent(out ParamCompSettings pcSettings)) {
                 Debug.LogWarning("ParamComp - Skipping `PreprocessorHook` because `ParamComp Settings` component is not found on the avatar");
                 return true;
             }
@@ -39,8 +36,7 @@ namespace ParamComp.Editor.Hooks
             var paramDefPath = AssetDatabase.GetAssetPath(paramDef);
 
             // Only make a laurafied version if it's NOT a vrcFury asset
-            if (!paramDefPath.Contains("com.vrcfury.temp"))
-            {
+            if (!paramDefPath.Contains("com.vrcfury.temp")) {
                 paramDefPath = CloneAsset(paramDefPath);
                 paramDef = AssetDatabase.LoadAssetAtPath<VRCExpressionParameters>(paramDefPath);
                 avatar.expressionParameters = paramDef;
@@ -52,15 +48,12 @@ namespace ParamComp.Editor.Hooks
             var fxControllerPath = AssetDatabase.GetAssetPath(runtimeCtrl);
 
             // Only make a laurafied version if it's NOT a vrcFury asset
-            if (!fxControllerPath.Contains("com.vrcfury.temp"))
-            {
+            if (!fxControllerPath.Contains("com.vrcfury.temp")) {
                 fxControllerPath = CloneAsset(fxControllerPath);
                 runtimeCtrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(fxControllerPath);
 
-                for (int i = 0; i < avatar.baseAnimationLayers.Length; i++)
-                {
-                    if (avatar.baseAnimationLayers[i].type == VRCAvatarDescriptor.AnimLayerType.FX)
-                    {
+                for (int i = 0; i < avatar.baseAnimationLayers.Length; i++) {
+                    if (avatar.baseAnimationLayers[i].type == VRCAvatarDescriptor.AnimLayerType.FX) {
                         var layer = avatar.baseAnimationLayers[i];
                         layer.animatorController = runtimeCtrl;
                         avatar.baseAnimationLayers[i] = layer;
@@ -77,8 +70,7 @@ namespace ParamComp.Editor.Hooks
             var boolsPerState = pcSettings.BoolsPerState;
             var numbersPerState = pcSettings.NumbersPerState;
 
-            for (int i = 0; i < exprParams.Parameters.Count; i++)
-            {
+            for (int i = 0; i < exprParams.Parameters.Count; i++) {
                 var param = exprParams.Parameters[i];
 
                 if (pcSettings.ExcludedPropertyNames.Contains(param.SourceParam.name))
@@ -91,14 +83,12 @@ namespace ParamComp.Editor.Hooks
                 ))
                     param.EnableProcessing = false;
 
-                foreach (var prefix in pcSettings.ExcludedPropertyNamePrefixes)
-                {
+                foreach (var prefix in pcSettings.ExcludedPropertyNamePrefixes) {
                     if (param.SourceParam.name.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase))
                         param.EnableProcessing = false;
                 }
 
-                foreach (var suffix in pcSettings.ExcludedPropertyNameSuffixes)
-                {
+                foreach (var suffix in pcSettings.ExcludedPropertyNameSuffixes) {
                     if (param.SourceParam.name.EndsWith(suffix, StringComparison.InvariantCultureIgnoreCase))
                         param.EnableProcessing = false;
                 }
@@ -121,8 +111,7 @@ namespace ParamComp.Editor.Hooks
             return true;
         }
 
-        private static string CloneAsset(string oldPath)
-        {
+        private static string CloneAsset(string oldPath) {
             var newPath = Path.Combine(
                 Path.GetDirectoryName(oldPath),
                 $"{Path.GetFileNameWithoutExtension(oldPath)}_laurafied.{Path.GetExtension(oldPath)}"

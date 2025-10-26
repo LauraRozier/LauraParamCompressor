@@ -35,8 +35,7 @@ namespace ParamComp.Editor
         };
         public List<UtilParameterInfo> Parameters { get; } = new();
 
-        public void SetValues(VRCExpressionParameters vrcParams)
-        {
+        public void SetValues(VRCExpressionParameters vrcParams) {
             Parameters.Clear();
 
             foreach (var param in vrcParams.parameters) {
@@ -58,8 +57,7 @@ namespace ParamComp.Editor
         public bool HasParamsToOptimize() =>
             Parameters.Where(x => x.EnableProcessing).Any();
 
-        public List<UtilParameterInfo> GetBoolParams(int boolsPerState)
-        {
+        public List<UtilParameterInfo> GetBoolParams(int boolsPerState) {
             var result = Parameters.Where(x =>
                 x.EnableProcessing &&
                 x.SourceParam.valueType == VRCExpressionParameters.ValueType.Bool
@@ -68,8 +66,7 @@ namespace ParamComp.Editor
             return result;
         }
 
-        public List<UtilParameterInfo> GetNumericParams(int numbersPerState)
-        {
+        public List<UtilParameterInfo> GetNumericParams(int numbersPerState) {
             var result = Parameters.Where(x =>
                 x.EnableProcessing &&
                 x.SourceParam.valueType != VRCExpressionParameters.ValueType.Bool
@@ -89,8 +86,7 @@ namespace ParamComp.Editor
 
         public event Action<bool> OnChanged;
 
-        public ParamField()
-        {
+        public ParamField() {
             var valueRow = new Box();
             valueRow.style.flexDirection = FlexDirection.Row;
             {
@@ -131,8 +127,8 @@ namespace ParamComp.Editor
     internal class ParamComp {
 
         internal static void PerformCompression(UtilParameters exprParams, AnimatorController animCtrl, VRCExpressionParameters vrcParameters,
-            bool isBuildTime = false, int boolsPerState = 8, int numbersPerState = 1)
-        {
+            bool isBuildTime = false, int boolsPerState = 8, int numbersPerState = 1
+        ) {
             if (!exprParams.HasParamsToOptimize()) return;
 
             var boolParams = exprParams.GetBoolParams(boolsPerState);
@@ -157,15 +153,23 @@ namespace ParamComp.Editor
             if (!isBuildTime)
                 BackupOriginals(animCtrlPath, vrcParametersPath);
 
-            var (localMachine, remoteMachine) = AddRequiredObjects(animCtrl, vrcParameters, animCtrlPath, numParams.Any(), boolParams.Any(), boolsPerState, numbersPerState);
-            ProcessParams(animCtrl, localMachine, remoteMachine, boolBatches, numBatches, paramsToOptimize);
+            bool makeStatesWD = false;
+
+            if (animCtrl.layers.Length > 0)
+                makeStatesWD = animCtrl.layers.Any(x => {
+                    if (x.stateMachine.states.Length < 1) return false;
+                    return x.stateMachine.states.Any(y => y.state.writeDefaultValues);
+                });
+
+            var (localMachine, remoteMachine) = AddRequiredObjects(animCtrl, vrcParameters, makeStatesWD, animCtrlPath, numParams.Any(),
+                boolParams.Any(), boolsPerState, numbersPerState);
+            ProcessParams(animCtrl, localMachine, remoteMachine, makeStatesWD, boolBatches, numBatches, paramsToOptimize);
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
         }
 
-        private static void BackupAsset(string oldPath)
-        {
+        private static void BackupAsset(string oldPath) {
             var newPath = Path.Combine(
                 Path.GetDirectoryName(oldPath),
                 $"{Path.GetFileNameWithoutExtension(oldPath)}_backup_{DateTime.Now:yyyy-MM-dd_HH-mm}.{Path.GetExtension(oldPath)}"
@@ -173,16 +177,16 @@ namespace ParamComp.Editor
             AssetDatabase.CopyAsset(oldPath, newPath);
         }
 
-        private static void BackupOriginals(string animCtrlPath, string vrcParametersPath)
-        {
+        private static void BackupOriginals(string animCtrlPath, string vrcParametersPath) {
             BackupAsset(animCtrlPath);
             BackupAsset(vrcParametersPath);
             AssetDatabase.SaveAssets();
         }
 
-        private static (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(AnimatorController animCtrl, VRCExpressionParameters vrcParameters,
-            string animCtrlPath, bool hasNumBatches, bool hasBoolBatches, int boolsPerState, int numbersPerState)
-        {
+        private static (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(AnimatorController animCtrl,
+            VRCExpressionParameters vrcParameters, bool makeStatesWD, string animCtrlPath, bool hasNumBatches, bool hasBoolBatches,
+            int boolsPerState, int numbersPerState
+        ) {
             if (!animCtrl.parameters.Any(x => x.name == UtilParameters.IsLocalName))
                 animCtrl.AddParameter(UtilParameters.IsLocalName, AnimatorControllerParameterType.Bool);
 
@@ -195,6 +199,7 @@ namespace ParamComp.Editor
                 });
 
             AddIntParameter(animCtrl, vrcParameters, UtilParameters.SyncPointerName);
+
             if (hasNumBatches)
                 for (int i = 0; i < numbersPerState; i++) {
                     AddIntParameter(animCtrl, vrcParameters, $"{UtilParameters.SyncDataNumName}{i}");
@@ -222,7 +227,7 @@ namespace ParamComp.Editor
             animCtrl.AddLayer(newLayer);
 
             var entryState = newLayer.stateMachine.AddState("Entry Selector", new(0, 60));
-            entryState.writeDefaultValues = false;
+            entryState.writeDefaultValues = makeStatesWD;
             newLayer.stateMachine.defaultState = entryState;
             AddCredit(newLayer.stateMachine);
 
@@ -235,7 +240,8 @@ namespace ParamComp.Editor
         }
 
         private static void ProcessParams(AnimatorController animCtrl, AnimatorStateMachine localMachine, AnimatorStateMachine remoteMachine,
-            string[][] boolBatches, (string,VRCExpressionParameters.ValueType)[][] numBatches, IEnumerable<UtilParameterInfo> paramsToProcess
+            bool makeStatesWD, string[][] boolBatches, (string, VRCExpressionParameters.ValueType)[][] numBatches,
+            IEnumerable<UtilParameterInfo> paramsToProcess
         ) {
             foreach (var param in paramsToProcess) {
                 param.SourceParam.networkSynced = false;
@@ -246,32 +252,41 @@ namespace ParamComp.Editor
             var stepCount = Math.Max(boolBatches.Count(), numBatches.Count());
 
             for (int i = 0; i < stepCount; i++) {
-                if (i == stepCount-1) currentSetPos.x -= 200;
                 var syncIndex = i + 1;
-                var (setState, setDriver) = AddState(localMachine, syncIndex, currentSetPos, false);
-                var (getState, getDriver) = AddState(remoteMachine, syncIndex, currentGetPos, true);
+                var (setState, setDriver) = AddState(localMachine, syncIndex, currentSetPos, false, makeStatesWD);
+                var (getState, getDriver) = AddState(remoteMachine, syncIndex, currentGetPos, true, makeStatesWD);
+
+                var setStateExtraFrame = localMachine.AddState($"Extra Sync Frame #{syncIndex}", currentSetPos + new Vector2(i == stepCount-1 ? -300 : 300, 0));
+                setStateExtraFrame.writeDefaultValues = makeStatesWD;
+                AddTransition(setState, setStateExtraFrame, true);
 
                 remoteMachine.AddEntryTransition(getState)
                     .AddCondition(AnimatorConditionMode.Equals, syncIndex, UtilParameters.SyncPointerName);
 
                 var exitTrans = getState.AddExitTransition();
+                exitTrans.canTransitionToSelf = false;
                 exitTrans.hasExitTime = false;
                 exitTrans.exitTime = 0f;
                 exitTrans.hasFixedDuration = true;
-                exitTrans.duration = 0f;
                 exitTrans.offset = 0f;
+                exitTrans.duration = 0f;
                 exitTrans.AddCondition(AnimatorConditionMode.If, 0, UtilParameters.SyncTrueName);
 
                 if (i == 0) {
                     localMachine.defaultState = setState;
                     remoteMachine.defaultState = getState;
-                    currentSetPos.x += 200;
+                    currentSetPos.x += 300;
                 } else if (prevSetState != null) {
-                    AddTransition(prevSetState, setState, true);
+                    var setExtraFrameTrans = AddTransition(prevSetState, setState, false);
+                    setExtraFrameTrans.AddCondition(AnimatorConditionMode.If, 0, UtilParameters.SyncTrueName);
                 }
 
-                if (i == stepCount-1) AddTransition(setState, localMachine.defaultState, true);
-                prevSetState = setState;
+                if (i == stepCount - 1) {
+                    var setExtraFrameTrans = AddTransition(setStateExtraFrame, localMachine.defaultState, false);
+                    setExtraFrameTrans.AddCondition(AnimatorConditionMode.If, 0, UtilParameters.SyncTrueName);
+                }
+
+                prevSetState = setStateExtraFrame;
 
                 if (i < numBatches.Count()) {
                     var batch = numBatches[i];
@@ -299,8 +314,9 @@ namespace ParamComp.Editor
             }
         }
 
-        private static AnimatorStateMachine AddStateMachine(AnimatorStateMachine machine, AnimatorState entryState, bool isRemote, bool isLocalIsBool)
-        {
+        private static AnimatorStateMachine AddStateMachine(AnimatorStateMachine machine, AnimatorState entryState, bool isRemote,
+            bool isLocalIsBool
+        ) {
             AnimatorStateMachine newMachine;
 
             if (isRemote) {
@@ -331,30 +347,29 @@ namespace ParamComp.Editor
         private static void AddCredit(AnimatorStateMachine machine) =>
             machine.AddStateMachine("Laura's Param Compression\nDiscord: LauraRozier", new(-300, -140));
 
-        private static AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorState dstState, bool hasExitTime)
-        {
+        private static AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorState dstState, bool hasExitTime) {
             var trans = srcState.AddTransition(dstState);
+            trans.canTransitionToSelf = false;
             trans.hasExitTime = hasExitTime;
-            trans.exitTime = hasExitTime ? 0.5f : 0f;
+            trans.exitTime = hasExitTime ? 0.1f : 0f;
             trans.hasFixedDuration = true;
             trans.offset = 0f;
             trans.duration = 0f;
             return trans;
         }
 
-        private static AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorStateMachine  dstMachine, bool hasExitTime)
-        {
+        private static AnimatorStateTransition AddTransition(AnimatorState srcState, AnimatorStateMachine  dstMachine, bool hasExitTime) {
             var trans = srcState.AddTransition(dstMachine);
+            trans.canTransitionToSelf = false;
             trans.hasExitTime = hasExitTime;
-            trans.exitTime = hasExitTime ? 0.5f : 0f;
+            trans.exitTime = hasExitTime ? 0.1f : 0f;
             trans.hasFixedDuration = true;
             trans.offset = 0f;
             trans.duration = 0f;
             return trans;
         }
 
-        private static void AddIntParameter(AnimatorController animCtrl, VRCExpressionParameters vrcParameters, string name)
-        {
+        private static void AddIntParameter(AnimatorController animCtrl, VRCExpressionParameters vrcParameters, string name) {
             if (!animCtrl.parameters.Any(x => x.name == name))
                 animCtrl.AddParameter(name, AnimatorControllerParameterType.Int);
 
@@ -371,8 +386,7 @@ namespace ParamComp.Editor
             }
         }
 
-        private static void AddBoolParameter(AnimatorController animCtrl, VRCExpressionParameters vrcParameters, string name)
-        {
+        private static void AddBoolParameter(AnimatorController animCtrl, VRCExpressionParameters vrcParameters, string name) {
             if (!animCtrl.parameters.Any(x => x.name == name))
                 animCtrl.AddParameter(name, AnimatorControllerParameterType.Bool);
 
@@ -389,27 +403,28 @@ namespace ParamComp.Editor
             }
         }
 
-        private static (AnimatorState, VRCAvatarParameterDriver) AddState(AnimatorStateMachine machine, int idx, Vector2 pos, bool isRemote)
-        {
-            var state = isRemote
-                ? machine.AddState($"Remote Get #{idx}", pos)
-                : machine.AddState($"Local Set #{idx}", pos);
-            state.writeDefaultValues = false;
+        private static (AnimatorState, VRCAvatarParameterDriver) AddState(AnimatorStateMachine machine, int idx, Vector2 pos, bool isRemote,
+            bool makeStatesWD
+        ) {
+            var state = machine.AddState($"{(isRemote ? "Remote Get" : "Local Set")} #{idx}", pos);
+            state.writeDefaultValues = makeStatesWD;
 
             var driver = state.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
             driver.localOnly = false;
 
-            if (!isRemote) driver.parameters.Add(new() {
-                type = VRC_AvatarParameterDriver.ChangeType.Set,
-                name = UtilParameters.SyncPointerName,
-                value = idx
-            });
+            if (!isRemote)
+                driver.parameters.Add(new() {
+                    type = VRC_AvatarParameterDriver.ChangeType.Set,
+                    name = UtilParameters.SyncPointerName,
+                    value = idx
+                });
 
             return (state, driver);
         }
 
-        private static void AddIntCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName, int destIdx)
-        {
+        private static void AddIntCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver,
+            string paramName, int destIdx
+        ) {
             if (!animCtrl.parameters.Any(x => x.name == paramName))
                 animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Int);
 
@@ -426,8 +441,9 @@ namespace ParamComp.Editor
             });
         }
 
-        private static void AddFloatCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName, int destIdx)
-        {
+        private static void AddFloatCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver,
+            string paramName, int destIdx
+        ) {
             if (!animCtrl.parameters.Any(x => x.name == paramName))
                 animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Float);
 
@@ -454,8 +470,9 @@ namespace ParamComp.Editor
             });
         }
 
-        private static void AddBoolCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver, string paramName, int destIdx)
-        {
+        private static void AddBoolCopy(AnimatorController animCtrl, VRCAvatarParameterDriver setDriver, VRCAvatarParameterDriver getDriver,
+            string paramName, int destIdx
+        ) {
             if (!animCtrl.parameters.Any(x => x.name == paramName))
                 animCtrl.AddParameter(paramName, AnimatorControllerParameterType.Bool);
 

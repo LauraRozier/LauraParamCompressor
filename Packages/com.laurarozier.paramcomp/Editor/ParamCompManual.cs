@@ -17,32 +17,30 @@ namespace ParamComp.Editor
         private ListView _list;
 
         [MenuItem("Tools/LauraRozier/Parameter Compressor/Manual")]
-        public static void ShowWindow()
-        {
+        public static void ShowWindow() {
             EditorWindow wnd = GetWindow<ParamCompManual>(true, "Parameter Compressor Manual", true);
             wnd.minSize = _windowSize;
             wnd.maxSize = _windowSize;
         }
 
-        public void CreateGUI()
-        {
-            IMGUIContainer imguiContainer = new(() =>
-            {
+        public void CreateGUI() {
+            IMGUIContainer imguiContainer = new(() => {
                 EditorGUILayout.Space();
                 EditorGUI.BeginChangeCheck();
                 {
                     _vrcParameters = (VRCExpressionParameters)EditorGUILayout.ObjectField("Expression Parameters", _vrcParameters, typeof(VRCExpressionParameters), true);
                     _animCtrl = (AnimatorController)EditorGUILayout.ObjectField("FX Controller", _animCtrl, typeof(AnimatorController), true);
                 }
-                if (EditorGUI.EndChangeCheck())
-                {
+                if (EditorGUI.EndChangeCheck()) {
                     _exprParams.SetValues(_vrcParameters);
                     _list?.RefreshItems();
                 }
 
                 GUI.enabled = _vrcParameters != null && _animCtrl != null;
+
                 if (GUILayout.Button("Compress", GUILayout.ExpandWidth(false)))
                     ParamComp.PerformCompression(_exprParams, _animCtrl, _vrcParameters);
+
                 GUI.enabled = true;
 
                 EditorGUILayout.HelpBox(
@@ -90,8 +88,7 @@ namespace ParamComp.Editor
                 scrollView.style.height = 420;
                 scrollView.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
 
-                _list = new()
-                {
+                _list = new() {
                     showFoldoutHeader = false,
                     showAddRemoveFooter = false,
                     reorderable = false,
@@ -104,11 +101,9 @@ namespace ParamComp.Editor
             rootVisualElement.Add(scrollView);
         }
 
-        private void BindItem(VisualElement el, int idx)
-        {
+        private void BindItem(VisualElement el, int idx) {
             ((ParamField)el).SetValue(_exprParams.Parameters[idx]);
-            ((ParamField)el).OnChanged += (val) =>
-            {
+            ((ParamField)el).OnChanged += (val) => {
                 var tmp = _exprParams.Parameters[idx];
                 tmp.EnableProcessing = val;
                 _exprParams.Parameters[idx] = tmp;
