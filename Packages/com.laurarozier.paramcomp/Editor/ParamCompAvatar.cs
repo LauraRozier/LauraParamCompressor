@@ -76,7 +76,7 @@ namespace ParamComp.Editor
                 EditorGUILayout.Space();
 
                 if (GUILayout.Button("Compress", GUILayout.ExpandWidth(false))) {
-                    ParamComp.PerformCompression(_exprParams, _animCtrl, _vrcParameters, false, _boolsPerState, _numbersPerState);
+                    ParamComp.PerformCompression(_exprParams, _animCtrl, _vrcParameters, _numbersPerState, _boolsPerState);
                     UpdateSelectedAvatar();
                 }
 

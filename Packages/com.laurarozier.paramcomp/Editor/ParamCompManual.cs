@@ -52,7 +52,7 @@ namespace ParamComp.Editor
                 GUI.enabled = _vrcParameters != null && _animCtrl != null;
 
                 if (GUILayout.Button("Compress", GUILayout.ExpandWidth(false)))
-                    ParamComp.PerformCompression(_exprParams, _animCtrl, _vrcParameters, false, _boolsPerState, _numbersPerState);
+                    ParamComp.PerformCompression(_exprParams, _animCtrl, _vrcParameters, _numbersPerState, _boolsPerState);
 
                 GUI.enabled = true;
 
