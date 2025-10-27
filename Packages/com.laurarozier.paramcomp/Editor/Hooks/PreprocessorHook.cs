@@ -14,8 +14,8 @@ namespace ParamComp.Editor.Hooks
 {
     internal class PreprocessorHook : IVRCSDKPreprocessAvatarCallback
     {
-        public int callbackOrder =>
-            int.MaxValue - 105; // VRCFury's compressor is `int.MaxValue - 100`
+        private const string CVRCFuryTempFolder = "com.vrcfury.temp";
+        public int callbackOrder => int.MaxValue - 105; // VRCFury's compressor is `int.MaxValue - 100`
 
         public bool OnPreprocessAvatar(GameObject obj) {
             if (!StateHolder.ShouldProcess(obj)) {
@@ -23,7 +23,7 @@ namespace ParamComp.Editor.Hooks
                 return true;
             }
 
-            if (!obj.TryGetComponent(out ParamCompSettings pcSettings)) {
+            if (!obj.TryGetComponent(out ParamCompSettings settings)) {
                 Debug.LogWarning("ParamComp - Skipping `PreprocessorHook` because `ParamComp Settings` component is not found on the avatar");
                 return true;
             }
@@ -31,24 +31,41 @@ namespace ParamComp.Editor.Hooks
             Debug.LogWarning($"ParamComp - `PreprocessorHook` running for {obj.name}");
             StateHolder.SetProcessed(obj);
 
-            VRCAvatarDescriptor avatar = obj.GetComponent<VRCAvatarDescriptor>();
+            var (paramDef, animCtrl) = GetRequiredAssets(obj.GetComponent<VRCAvatarDescriptor>());
+
+            UtilParameters exprParams = new();
+            exprParams.SetValues(paramDef);
+            var boolsPerState = settings.BoolsPerState;
+            var numbersPerState = settings.NumbersPerState;
+
+            for (int i = 0; i < exprParams.Parameters.Count; i++) {
+                exprParams.Parameters[i] = ProcessExclusions(exprParams.Parameters[i], settings);
+            }
+
+            // Remove our settings component so it doesn't get uploaded
+            UnityEngine.Object.DestroyImmediate(settings);
+            ParamComp.PerformCompression(exprParams, animCtrl, paramDef, numbersPerState, boolsPerState, true);
+            return true;
+        }
+
+        private (VRCExpressionParameters, AnimatorController) GetRequiredAssets(VRCAvatarDescriptor avatar) {
             var paramDef = avatar.expressionParameters;
             var paramDefPath = AssetDatabase.GetAssetPath(paramDef);
 
             // Only make a laurafied version if it's NOT a vrcFury asset
-            if (!paramDefPath.Contains("com.vrcfury.temp")) {
+            if (!paramDefPath.Contains(CVRCFuryTempFolder)) {
                 paramDefPath = CloneAsset(paramDefPath);
                 paramDef = AssetDatabase.LoadAssetAtPath<VRCExpressionParameters>(paramDefPath);
                 avatar.expressionParameters = paramDef;
             }
 
             var runtimeCtrl = avatar.baseAnimationLayers?.FirstOrDefault(
-                    bal => bal.type == VRCAvatarDescriptor.AnimLayerType.FX
-                ).animatorController;
+                bal => bal.type == VRCAvatarDescriptor.AnimLayerType.FX
+            ).animatorController;
             var fxControllerPath = AssetDatabase.GetAssetPath(runtimeCtrl);
 
             // Only make a laurafied version if it's NOT a vrcFury asset
-            if (!fxControllerPath.Contains("com.vrcfury.temp")) {
+            if (!fxControllerPath.Contains(CVRCFuryTempFolder)) {
                 fxControllerPath = CloneAsset(fxControllerPath);
                 runtimeCtrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(fxControllerPath);
 
@@ -65,50 +82,7 @@ namespace ParamComp.Editor.Hooks
             var animCtrl = runtimeCtrl != null
                 ? AssetDatabase.LoadAssetAtPath<AnimatorController>(fxControllerPath)
                 : null;
-            UtilParameters exprParams = new();
-            exprParams.SetValues(paramDef);
-            var boolsPerState = pcSettings.BoolsPerState;
-            var numbersPerState = pcSettings.NumbersPerState;
-
-            for (int i = 0; i < exprParams.Parameters.Count; i++) {
-                var param = exprParams.Parameters[i];
-
-                if (pcSettings.ExcludedPropertyNames.Contains(param.SourceParam.name))
-                    param.EnableProcessing = false;
-
-                if (pcSettings.ExcludeVRCFT && (
-                    param.SourceParam.name.StartsWith("FT/v1/", StringComparison.InvariantCultureIgnoreCase) ||
-                    param.SourceParam.name.StartsWith("FT/v2/", StringComparison.InvariantCultureIgnoreCase) ||
-                    param.SourceParam.name.StartsWith("FT/v3/", StringComparison.InvariantCultureIgnoreCase) // Why not future-proof a little
-                ))
-                    param.EnableProcessing = false;
-
-                foreach (var prefix in pcSettings.ExcludedPropertyNamePrefixes) {
-                    if (param.SourceParam.name.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase))
-                        param.EnableProcessing = false;
-                }
-
-                foreach (var suffix in pcSettings.ExcludedPropertyNameSuffixes) {
-                    if (param.SourceParam.name.EndsWith(suffix, StringComparison.InvariantCultureIgnoreCase))
-                        param.EnableProcessing = false;
-                }
-
-                if (pcSettings.ExcludeBools && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Bool)
-                    param.EnableProcessing = false;
-
-                if (pcSettings.ExcludeInts && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Int)
-                    param.EnableProcessing = false;
-
-                if (pcSettings.ExcludeFloats && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Float)
-                    param.EnableProcessing = false;
-
-                exprParams.Parameters[i] = param;
-            }
-
-            // Remove our settings component so it doesn't get uploaded
-            UnityEngine.Object.DestroyImmediate(pcSettings);
-            ParamComp.PerformCompression(exprParams, animCtrl, paramDef, true, boolsPerState, numbersPerState);
-            return true;
+            return (paramDef, animCtrl);
         }
 
         private static string CloneAsset(string oldPath) {
@@ -116,8 +90,31 @@ namespace ParamComp.Editor.Hooks
                 Path.GetDirectoryName(oldPath),
                 $"{Path.GetFileNameWithoutExtension(oldPath)}_laurafied.{Path.GetExtension(oldPath)}"
             );
-            AssetDatabase.CopyAsset(oldPath, newPath);
-            return newPath;
+            return AssetDatabase.CopyAsset(oldPath, newPath) ? newPath : oldPath;
+        }
+
+        private UtilParameterInfo ProcessExclusions(UtilParameterInfo param, ParamCompSettings settings) {
+            if ((settings.ExcludeBools && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Bool) ||
+                (settings.ExcludeInts && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Int) ||
+                (settings.ExcludeFloats && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Float)
+            ) return param.Disable();
+
+            if (settings.ExcludeVRCFT && (
+                param.SourceParam.name.StartsWith("FT/v1/", StringComparison.InvariantCultureIgnoreCase) ||
+                param.SourceParam.name.StartsWith("FT/v2/", StringComparison.InvariantCultureIgnoreCase) ||
+                param.SourceParam.name.StartsWith("FT/v3/", StringComparison.InvariantCultureIgnoreCase) // Why not future-proof a little
+            )) return param.Disable();
+
+            if (settings.ExcludedPropertyNamePrefixes.Any(prefix => param.SourceParam.name.StartsWith(
+                    prefix, StringComparison.InvariantCultureIgnoreCase
+                )) ||
+                settings.ExcludedPropertyNameSuffixes.Any(suffix => param.SourceParam.name.EndsWith(
+                    suffix, StringComparison.InvariantCultureIgnoreCase
+                )) ||
+                settings.ExcludedPropertyNames.Contains(param.SourceParam.name)
+            ) return param.Disable();
+
+            return param;
         }
     }
 }
