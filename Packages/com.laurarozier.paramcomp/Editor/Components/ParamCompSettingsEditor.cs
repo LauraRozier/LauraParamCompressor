@@ -28,7 +28,7 @@ namespace ParamComp.Editor.Components
 
         public void OnEnable() {
             _titleStyle = new(EditorStyles.boldLabel);
-            _titleStyle.fontSize *= 2;
+            _titleStyle.fontSize += 6;
             _editorTitleHeight = GUILayout.Height(_titleStyle.CalcSize(_editorTitle).y);
 
             _ExcludedPropertyNamesProperty = serializedObject.FindProperty("ExcludedPropertyNames");
