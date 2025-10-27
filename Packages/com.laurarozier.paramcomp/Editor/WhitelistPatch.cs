@@ -48,7 +48,7 @@ namespace ParamComp.Editor.Components
                     BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
                 var whitelists = cachedWhitelists.GetValue(null);
                 var clearMethod = whitelists.GetType().GetMethod("Clear");
-                clearMethod.Invoke(whitelists, new object[] {});
+                clearMethod.Invoke(whitelists, Array.Empty<object>());
             } catch (Exception e) {
                 Debug.LogError(new Exception("Laura's Parameter Compressor failed to clear whitelist cache", e));
             }
