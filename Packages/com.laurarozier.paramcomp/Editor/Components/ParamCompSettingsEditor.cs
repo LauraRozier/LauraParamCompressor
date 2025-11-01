@@ -5,7 +5,7 @@ using ParamComp.Runtime.Components;
 
 namespace ParamComp.Editor.Components
 {
-    [CustomEditor(typeof(ParamCompSettings))]
+    [CustomEditor(typeof(ParamCompSettings)), CanEditMultipleObjects]
     public class ParamCompSettingsEditor : UnityEditor.Editor
     {
         // Parameter Name Exclusions
