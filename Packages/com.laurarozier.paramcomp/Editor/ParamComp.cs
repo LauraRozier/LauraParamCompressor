@@ -75,12 +75,16 @@ namespace ParamComp.Editor
             var numbers = Parameters.Where(x =>
                 x.EnableProcessing && x.SourceParam.valueType != VRCExpressionParameters.ValueType.Bool
             ).ToList();
-            if (numbers.Count <= numbersPerState) numbers.Clear();
+
+            if (numbers.Count <= numbersPerState)
+                numbers.Clear();
 
             var bools = Parameters.Where(x =>
                 x.EnableProcessing && x.SourceParam.valueType == VRCExpressionParameters.ValueType.Bool
             ).ToList();
-            if (bools.Count <= boolsPerState) bools.Clear();
+
+            if (bools.Count <= boolsPerState)
+                bools.Clear();
 
             // Size of the pointer + bools per state + 8 * number per state
             var bitsToAdd = 8 +
@@ -88,15 +92,13 @@ namespace ParamComp.Editor
                 (bools.Count > 0 ? boolsPerState : 0);
             var bitsToRemove = numbers.Concat(bools).Sum(x => VRCExpressionParameters.TypeCost(x.SourceParam.valueType));
 
-            if (bitsToAdd >= bitsToRemove) {
-                // Don't optimize if it won't save space
+            if (bitsToAdd >= bitsToRemove) { // Don't optimize if it won't save space
                 numbers.Clear();
                 bools.Clear();
             }
 
             if (numbers.Count + bools.Count > 0)
-                foreach (var param in numbers.Concat(bools)) {
-                    // Disable network sync for all remaining parameters
+                foreach (var param in numbers.Concat(bools)) { // Disable network sync for all remaining parameters
                     param.SourceParam.networkSynced = false;
                 }
 
@@ -122,27 +124,28 @@ namespace ParamComp.Editor
         public event Action<bool> OnChanged;
 
         public ParamField() {
-            var valueRow = new Box();
-            valueRow.style.flexDirection = FlexDirection.Row;
+            Box valueRow = new();
             {
-                _lblName = new Label();
+                valueRow.style.flexDirection = FlexDirection.Row;
+
+                _lblName = new();
                 _lblName.style.width = 400;
                 valueRow.Add(_lblName);
 
-                _lblValueType = new Label();
+                _lblValueType = new();
                 _lblValueType.style.width = 80;
                 valueRow.Add(_lblValueType);
 
-                _lblDefaultValue = new Label();
+                _lblDefaultValue = new();
                 _lblDefaultValue.style.width = 90;
                 valueRow.Add(_lblDefaultValue);
 
-                _tglSaved = new Toggle();
+                _tglSaved = new();
                 _tglSaved.style.width = 50;
                 _tglSaved.SetEnabled(false);
                 valueRow.Add(_tglSaved);
 
-                _tglEnableProcessing = new Toggle();
+                _tglEnableProcessing = new();
                 _tglEnableProcessing.style.width = 110;
                 _tglEnableProcessing.RegisterValueChangedCallback(evt => OnChanged?.Invoke(evt.newValue));
                 valueRow.Add(_tglEnableProcessing);
@@ -161,12 +164,14 @@ namespace ParamComp.Editor
 
     internal class ParamComp
     {
+        internal const string CLogPrefix = "=== Laura's Parameter Compressor -";
+
         private readonly static Vector2 CLayerAnyPos = new(20, -90);
         private readonly static Vector2 CLayerExitPos = new(20, -60);
         private readonly static Vector2 CLayerEntryPos = new(20, -30);
         private readonly static Vector2 CLayerEntrySelectPos = new(0, 60);
         private readonly static Vector2 CCreditPos = new(-300, -140);
-        private const string CCreditText = "Laura's Param Compression\nDiscord: LauraRozier";
+        private const string CCreditText = "Laura's Param Compressor\nDiscord: LauraRozier";
         private const int CAnimCtrlGridBlockSize = 100;
         private const int CSetStateYPosOffset = CAnimCtrlGridBlockSize;
         private const int CSetStateXPosOffsetIdx0 = CAnimCtrlGridBlockSize * 3;
@@ -189,16 +194,22 @@ namespace ParamComp.Editor
             if (!isBuildTime)
                 BackupOriginals(animCtrlPath, vrcParametersPath);
 
-            bool makeStatesWD = false;
-
-            if (animCtrl.layers.Length > 0)
-                makeStatesWD = animCtrl.layers.Any(x => {
-                    if (x.stateMachine.states.Length < 1) return false;
-                    return x.stateMachine.states.Any(y => y.state.writeDefaultValues);
-                });
+            var layersWithStates = animCtrl.layers.Where(x => x.stateMachine.states.Length > 0);
+            var onStates = layersWithStates.Sum(x => x.stateMachine.states.Count(y =>
+                !y.state.name.StartsWith("Warning from VRCFury") &&
+                y.state.writeDefaultValues
+            ));
+            var offStates = layersWithStates.Sum(x => x.stateMachine.states.Count(y =>
+                !y.state.name.StartsWith("Warning from VRCFury") &&
+                !y.state.writeDefaultValues
+            ));
+            bool makeStatesWD = onStates > offStates;
+            Debug.Log($"{CLogPrefix} WD decision ({onStates} on | {offStates} off) = {makeStatesWD}");
 
             var (localMachine, remoteMachine) = AddRequiredObjects(animCtrl, vrcParameters, makeStatesWD, animCtrlPath,
-                numBatches.Length > 0, boolBatches.Length > 0, numbersPerState, boolsPerState);
+                numBatches.Length > 0 ? numbersPerState : 0,
+                boolBatches.Length > 0 ? boolsPerState : 0
+            );
             ProcessParams(animCtrl, localMachine, remoteMachine, makeStatesWD, numBatches, boolBatches);
 
             AssetDatabase.SaveAssets();
@@ -220,8 +231,7 @@ namespace ParamComp.Editor
         }
 
         private static (AnimatorStateMachine local, AnimatorStateMachine remote) AddRequiredObjects(AnimatorController animCtrl,
-            VRCExpressionParameters vrcParameters, bool makeStatesWD, string animCtrlPath, bool hasNumBatches, bool hasBoolBatches,
-            int numbersPerState, int boolsPerState
+            VRCExpressionParameters vrcParameters, bool makeStatesWD, string animCtrlPath, int numbersPerState, int boolsPerState
         ) {
             if (!animCtrl.parameters.Any(x => x.name == UtilParameters.IsLocalName))
                 animCtrl.AddParameter(UtilParameters.IsLocalName, AnimatorControllerParameterType.Bool);
@@ -235,15 +245,13 @@ namespace ParamComp.Editor
 
             AddIntParameter(animCtrl, vrcParameters, UtilParameters.SyncPointerName);
 
-            if (hasNumBatches)
-                for (int i = 0; i < numbersPerState; i++) {
-                    AddIntParameter(animCtrl, vrcParameters, $"{UtilParameters.SyncDataNumName}{i}");
-                }
+            for (int i = 0; i < numbersPerState; i++) {
+                AddIntParameter(animCtrl, vrcParameters, $"{UtilParameters.SyncDataNumName}{i}");
+            }
 
-            if (hasBoolBatches)
-                for (int i = 0; i < boolsPerState; i++) {
-                    AddBoolParameter(animCtrl, vrcParameters, $"{UtilParameters.SyncDataBoolName}{i}");
-                }
+            for (int i = 0; i < boolsPerState; i++) {
+                AddBoolParameter(animCtrl, vrcParameters, $"{UtilParameters.SyncDataBoolName}{i}");
+            }
 
             var layerName = animCtrl.MakeUniqueLayerName("[Laura]CompressedParams");
             AnimatorControllerLayer newLayer = new() {
@@ -266,11 +274,12 @@ namespace ParamComp.Editor
             newLayer.stateMachine.defaultState = entryState;
             AddCredit(newLayer.stateMachine);
 
-            var isLocalIsBool = animCtrl.parameters.First(x => x.name == UtilParameters.IsLocalName).type == AnimatorControllerParameterType.Bool;
-
+            var isLocalIsBool = animCtrl.parameters.Any(x =>
+                x.name == UtilParameters.IsLocalName &&
+                x.type == AnimatorControllerParameterType.Bool
+            );
             var localMachine = AddStateMachine(newLayer.stateMachine, entryState, false, isLocalIsBool);
             var remoteMachine = AddStateMachine(newLayer.stateMachine, entryState, true, isLocalIsBool);
-
             return (localMachine, remoteMachine);
         }
 

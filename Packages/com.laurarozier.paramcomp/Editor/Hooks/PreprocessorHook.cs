@@ -19,16 +19,16 @@ namespace ParamComp.Editor.Hooks
 
         public bool OnPreprocessAvatar(GameObject obj) {
             if (!StateHolder.ShouldProcess(obj)) {
-                Debug.LogWarning("ParamComp - Skipping `PreprocessorHook` because preprocessors already ran on this object");
+                Debug.LogWarning($"{ParamComp.CLogPrefix} Skipping `PreprocessorHook` because preprocessors already ran on this object");
                 return true;
             }
 
             if (!obj.TryGetComponent(out ParamCompSettings settings)) {
-                Debug.LogWarning("ParamComp - Skipping `PreprocessorHook` because `ParamComp Settings` component is not found on the avatar");
+                Debug.Log($"{ParamComp.CLogPrefix} Skipping `PreprocessorHook` because `ParamComp Settings` component is not found on the avatar");
                 return true;
             }
 
-            Debug.LogWarning($"ParamComp - `PreprocessorHook` running for {obj.name}");
+            Debug.Log($"{ParamComp.CLogPrefix} `PreprocessorHook` running for {obj.name}");
             StateHolder.SetProcessed(obj);
 
             var (paramDef, animCtrl) = GetRequiredAssets(obj.GetComponent<VRCAvatarDescriptor>());
