@@ -10,8 +10,8 @@ namespace ParamComp.Editor
         private static readonly List<Transform> _objStates = new();
 
         [InitializeOnLoadMethod]
-        private static void Init() {
-            EditorApplication.playModeStateChanged += state => {
+        static void Init() {
+            EditorApplication.playModeStateChanged += (state) => {
                 if (state == PlayModeStateChange.ExitingPlayMode)
                     _objStates.Clear();
             };
