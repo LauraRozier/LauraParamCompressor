@@ -18,7 +18,7 @@ namespace ParamComp.Runtime.Components
         public bool ExcludeFloats = false;
 
         // Output Settings
-        [Range(8, 32)]
+        [Range(1, 64)]
         public int BoolsPerState = 8;
         [Range(1, 8)]
         public int NumbersPerState = 1;
