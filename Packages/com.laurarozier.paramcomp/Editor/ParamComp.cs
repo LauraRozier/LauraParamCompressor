@@ -42,13 +42,43 @@ namespace ParamComp.Editor
         public const string SyncTrueName = "Laura/Sync/True";
         public const string SyncDataNumName = "Laura/Sync/DataNum";
         public const string SyncDataBoolName = "Laura/Sync/DataBool";
-        private readonly static string[] VRChatParams = new[] {
+        private readonly static string[] VRChatParams = {
             IsLocalName, "PreviewMode", "Viseme", "Voice", "GestureLeft", "GestureRight", "GestureLeftWeight",
             "GestureRightWeight", "AngularY", "VelocityX", "VelocityY", "VelocityZ", "VelocityMagnitude",
             "Upright", "Grounded", "Seated", "AFK", "TrackingType", "VRMode", "MuteSelf", "InStation",
             "Earmuffs", "IsOnFriendsList", "AvatarVersion", "IsAnimatorEnabled", "ScaleModified", "ScaleFactor",
             "ScaleFactorInverse", "EyeHeightAsMeters", "EyeHeightAsPercent", "VRCEmote", "VRCFaceBlendH", "VRCFaceBlendV"
         };
+        internal readonly static string[] VRCFTv4Params = {
+            "EyesX", "EyesY", "LeftEyeLid", "RightEyeLid", "CombinedEyeLid", "EyesWiden", "EyesDilation", "EyesPupilDiameter",
+            "EyesSqueeze", "LeftEyeX", "LeftEyeY", "RightEyeX", "RightEyeY", "LeftEyeWiden", "RightEyeWiden", "LeftEyeSqueeze",
+            "RightEyeSqueeze", "LeftEyeLidExpanded", "RightEyeLidExpanded", "CombinedEyeLidExpanded", "LeftEyeLidExpandedSqueeze",
+            "RightEyeLidExpandedSqueeze", "CombinedEyeLidExpandedSqueeze", "JawRight", "JawLeft", "JawForward", "JawOpen",
+            "MouthApeShape", "MouthUpperRight", "MouthUpperLeft", "MouthLowerRight", "MouthLowerLeft", "MouthUpperOverturn",
+            "MouthLowerOverturn", "MouthPout", "MouthSmileRight", "MouthSmileLeft", "MouthSadRight", "MouthSadLeft",
+            "CheekPuffRight", "CheekPuffLeft", "CheekSuck", "MouthUpperUpRight", "MouthUpperUpLeft", "MouthLowerDownRight",
+            "MouthLowerDownLeft", "MouthUpperInside", "MouthLowerInside", "MouthLowerOverlay", "TongueLongStep1", "TongueLongStep2",
+            "TongueDown", "TongueUp", "TongueRight", "TongueLeft", "TongueRoll", "TongueUpLeftMorph", "TongueUpRightMorph",
+            "TongueDownLeftMorph", "TongueDownRightMorph", "JawX", "MouthUpper", "MouthLower", "MouthX", "MouthUpperInsideOverturn",
+            "MouthLowerInsideOverturn", "SmileSadRight", "SmileSadLeft", "SmileSad", "TongueY", "TongueX", "TongueSteps",
+            "PuffSuckRight", "PuffSuckLeft", "PuffSuck", "JawOpenApe", "JawOpenPuff", "JawOpenPuffRight", "JawOpenPuffLeft",
+            "JawOpenSuck", "JawOpenForward", "JawOpenOverlay", "MouthUpperUpRightUpperInside", "MouthUpperUpRightPuffRight",
+            "MouthUpperUpRightApe", "MouthUpperUpRightPout", "MouthUpperUpRightOverlay", "MouthUpperUpRightSuck",
+            "MouthUpperUpLeftUpperInside", "MouthUpperUpLeftPuffLeft", "MouthUpperUpLeftApe", "MouthUpperUpLeftPout",
+            "MouthUpperUpLeftOverlay", "MouthUpperUpLeftSuck", "MouthUpperUpUpperInside", "MouthUpperUpInside", "MouthUpperUpPuff",
+            "MouthUpperUpPuffLeft", "MouthUpperUpPuffRight", "MouthUpperUpApe", "MouthUpperUpPout", "MouthUpperUpOverlay",
+            "MouthUpperUpSuck", "MouthLowerDownRightLowerInside", "MouthLowerDownRightPuffRight", "MouthLowerDownRightApe",
+            "MouthLowerDownRightPout", "MouthLowerDownRightOverlay", "MouthLowerDownRightSuck", "MouthLowerDownLeftLowerInside",
+            "MouthLowerDownLeftPuffLeft", "MouthLowerDownLeftApe", "MouthLowerDownLeftPout", "MouthLowerDownLeftOverlay",
+            "MouthLowerDownLeftSuck", "MouthLowerDownLowerInside", "MouthLowerDownInside", "MouthLowerDownPuff",
+            "MouthLowerDownPuffLeft", "MouthLowerDownPuffRight", "MouthLowerDownApe", "MouthLowerDownPout", "MouthLowerDownOverlay",
+            "MouthLowerDownSuck", "SmileRightUpperOverturn", "SmileRightLowerOverturn", "SmileRightOverturn", "SmileRightApe",
+            "SmileRightOverlay", "SmileRightPout", "SmileLeftUpperOverturn", "SmileLeftLowerOverturn", "SmileLeftOverturn",
+            "SmileLeftApe", "SmileLeftOverlay", "SmileLeftPout", "SmileUpperOverturn", "SmileLowerOverturn", "SmileApe", "SmileOverlay",
+            "SmilePout", "PuffRightUpperOverturn", "PuffRightLowerOverturn", "PuffRightOverturn", "PuffLeftUpperOverturn",
+            "PuffLeftLowerOverturn", "PuffLeftOverturn", "PuffUpperOverturn", "PuffLowerOverturn", "PuffOverturn"
+        };
+        internal readonly static string[] VRCFTv5Prefixes = { "v2/", "FT/v2/" };
         public List<UtilParameterInfo> Parameters { get; } = new();
 
         public void SetValues(VRCExpressionParameters vrcParams) {

@@ -11,6 +11,7 @@ namespace ParamComp.Runtime.Components
         public string[] ExcludedPropertyNamePrefixes = Array.Empty<string>();
         public string[] ExcludedPropertyNameSuffixes = Array.Empty<string>();
         // Package Specific Exclusions
+        public bool ExcludeVRCFTv4 = true;
         public bool ExcludeVRCFT = true;
         // Parameter Type Exclusions
         public bool ExcludeBools = false;

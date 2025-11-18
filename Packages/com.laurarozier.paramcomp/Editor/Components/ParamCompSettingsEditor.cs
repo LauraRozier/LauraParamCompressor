@@ -13,7 +13,8 @@ namespace ParamComp.Editor.Components
         private SerializedProperty _ExcludedPropertyNamePrefixesProperty;
         private SerializedProperty _ExcludedPropertyNameSuffixesProperty;
         // Package Specific Exclusions
-        private SerializedProperty _ExcludeVRCFTProperty;
+        private SerializedProperty _ExcludeVRCFTv4Property;
+        private SerializedProperty _ExcludeVRCFTv5Property;
         // Parameter Type Exclusions
         private SerializedProperty _ExcludeBoolsProperty;
         private SerializedProperty _ExcludeIntsProperty;
@@ -35,7 +36,8 @@ namespace ParamComp.Editor.Components
             _ExcludedPropertyNamePrefixesProperty = serializedObject.FindProperty("ExcludedPropertyNamePrefixes");
             _ExcludedPropertyNameSuffixesProperty = serializedObject.FindProperty("ExcludedPropertyNameSuffixes");
 
-            _ExcludeVRCFTProperty = serializedObject.FindProperty("ExcludeVRCFT");
+            _ExcludeVRCFTv4Property = serializedObject.FindProperty("ExcludeVRCFTv4");
+            _ExcludeVRCFTv5Property = serializedObject.FindProperty("ExcludeVRCFT");
 
             _ExcludeBoolsProperty = serializedObject.FindProperty("ExcludeBools");
             _ExcludeIntsProperty = serializedObject.FindProperty("ExcludeInts");
@@ -73,8 +75,11 @@ namespace ParamComp.Editor.Components
 
             EditorGUILayout.Space();
             EditorGUILayout.LabelField("Package Specific Exclusions", EditorStyles.boldLabel);
-            EditorGUILayout.PropertyField(_ExcludeVRCFTProperty, new GUIContent("Exclude VRCFT parameters",
-                "Exclude important VRCFaceTracking (Jerry's Templates) parameters from the compressor."
+            EditorGUILayout.PropertyField(_ExcludeVRCFTv4Property, new GUIContent("Exclude VRCFT v4 parameters",
+                "Exclude important VRCFaceTracking v4 parameters from the compressor."
+            ), true);
+            EditorGUILayout.PropertyField(_ExcludeVRCFTv5Property, new GUIContent("Exclude VRCFT v5 parameters",
+                "Exclude important VRCFaceTracking V5 parameters, prefixed with 'v2/' or 'FT/v2/', from the compressor."
             ), true);
 
             EditorGUILayout.Space();

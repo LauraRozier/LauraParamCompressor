@@ -39,7 +39,7 @@ namespace ParamComp.Editor.Hooks
             var numbersPerState = settings.NumbersPerState;
 
             for (int i = 0; i < exprParams.Parameters.Count; i++) {
-                exprParams.Parameters[i] = ProcessExclusions(exprParams.Parameters[i], settings);
+                exprParams.Parameters[i] = ProcessExclusion(exprParams.Parameters[i], settings);
             }
 
             // Remove our settings component so it doesn't get uploaded
@@ -93,24 +93,25 @@ namespace ParamComp.Editor.Hooks
             return AssetDatabase.CopyAsset(oldPath, newPath) ? newPath : oldPath;
         }
 
-        private UtilParameterInfo ProcessExclusions(UtilParameterInfo param, ParamCompSettings settings) {
+        private UtilParameterInfo ProcessExclusion(UtilParameterInfo param, ParamCompSettings settings) {
             if ((settings.ExcludeBools && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Bool) ||
                 (settings.ExcludeInts && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Int) ||
                 (settings.ExcludeFloats && param.SourceParam.valueType == VRCExpressionParameters.ValueType.Float)
             ) return param.Disable();
 
-            if (settings.ExcludeVRCFT && (
-                param.SourceParam.name.StartsWith("FT/v1/", StringComparison.InvariantCultureIgnoreCase) ||
-                param.SourceParam.name.StartsWith("FT/v2/", StringComparison.InvariantCultureIgnoreCase) ||
-                param.SourceParam.name.StartsWith("FT/v3/", StringComparison.InvariantCultureIgnoreCase) // Why not future-proof a little
+            if (settings.ExcludeVRCFTv4 && UtilParameters.VRCFTv4Params.Contains(param.SourceParam.name))
+                return param.Disable();
+
+            if (settings.ExcludeVRCFT && UtilParameters.VRCFTv5Prefixes.Any(
+                p => param.SourceParam.name.StartsWith(p, StringComparison.InvariantCultureIgnoreCase)
             )) return param.Disable();
 
-            if (settings.ExcludedPropertyNamePrefixes.Any(prefix => param.SourceParam.name.StartsWith(
-                    prefix, StringComparison.InvariantCultureIgnoreCase
-                )) ||
-                settings.ExcludedPropertyNameSuffixes.Any(suffix => param.SourceParam.name.EndsWith(
-                    suffix, StringComparison.InvariantCultureIgnoreCase
-                )) ||
+            if (settings.ExcludedPropertyNamePrefixes.Any(
+                    prefix => param.SourceParam.name.StartsWith(prefix, StringComparison.InvariantCultureIgnoreCase)
+                ) ||
+                settings.ExcludedPropertyNameSuffixes.Any(
+                    suffix => param.SourceParam.name.EndsWith(suffix, StringComparison.InvariantCultureIgnoreCase)
+                ) ||
                 settings.ExcludedPropertyNames.Contains(param.SourceParam.name)
             ) return param.Disable();
 
