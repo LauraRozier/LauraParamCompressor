@@ -39,6 +39,7 @@ namespace ParamComp.Editor
 
         public const string IsLocalName = "IsLocal";
         public const string SyncPointerName = "Laura/Sync/Ptr";
+        public const string SyncLastPointerName = "Laura/Sync/LastPtr";
         public const string SyncTrueName = "Laura/Sync/True";
         public const string SyncDataNumName = "Laura/Sync/DataNum";
         public const string SyncDataBoolName = "Laura/Sync/DataBool";
@@ -88,6 +89,7 @@ namespace ParamComp.Editor
                 // Skip any VRChat default or non-synced parameter
                 if (VRChatParams.Contains(param.name) ||
                     SyncPointerName.Equals(param.name, StringComparison.InvariantCulture) ||
+                    SyncLastPointerName.Equals(param.name, StringComparison.InvariantCulture) ||
                     SyncTrueName.Equals(param.name, StringComparison.InvariantCulture) ||
                     param.name.StartsWith(SyncDataNumName, StringComparison.InvariantCulture) ||
                     param.name.StartsWith(SyncDataBoolName, StringComparison.InvariantCulture) ||
@@ -275,6 +277,10 @@ namespace ParamComp.Editor
 
             AddIntParameter(animCtrl, vrcParameters, UtilParameters.SyncPointerName);
 
+            // animator-only parameter, for remote pointer tracking
+            if (!animCtrl.parameters.Any(x => x.name == UtilParameters.SyncLastPointerName))
+                animCtrl.AddParameter(UtilParameters.SyncLastPointerName, AnimatorControllerParameterType.Int);
+
             for (int i = 0; i < numbersPerState; i++) {
                 AddIntParameter(animCtrl, vrcParameters, $"{UtilParameters.SyncDataNumName}{i}");
             }
@@ -331,8 +337,9 @@ namespace ParamComp.Editor
                 setStateExtraFrame.writeDefaultValues = makeStatesWD;
                 AddTransition(setState, setStateExtraFrame, true);
 
-                remoteMachine.AddEntryTransition(getState)
-                    .AddCondition(AnimatorConditionMode.Equals, syncIndex, UtilParameters.SyncPointerName);
+                var entryTrans = remoteMachine.AddEntryTransition(getState);
+                entryTrans.AddCondition(AnimatorConditionMode.Equals, syncIndex, UtilParameters.SyncPointerName);
+                entryTrans.AddCondition(AnimatorConditionMode.NotEqual, syncIndex, UtilParameters.SyncLastPointerName);
 
                 var exitTrans = getState.AddExitTransition();
                 exitTrans.canTransitionToSelf = false;
@@ -482,13 +489,11 @@ namespace ParamComp.Editor
 
             var driver = state.AddStateMachineBehaviour<VRCAvatarParameterDriver>();
             driver.localOnly = false;
-
-            if (!isRemote)
-                driver.parameters.Add(new() {
-                    type = VRC_AvatarParameterDriver.ChangeType.Set,
-                    name = UtilParameters.SyncPointerName,
-                    value = idx
-                });
+            driver.parameters.Add(new() {
+                type = VRC_AvatarParameterDriver.ChangeType.Set,
+                name = isRemote ? UtilParameters.SyncLastPointerName : UtilParameters.SyncPointerName,
+                value = idx
+            });
 
             return (state, driver);
         }
