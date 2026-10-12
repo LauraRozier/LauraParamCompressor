@@ -15,6 +15,7 @@ namespace ParamComp.Editor.Hooks
     internal class PreprocessorHook : IVRCSDKPreprocessAvatarCallback
     {
         private const string CVRCFuryTempFolder = "com.vrcfury.temp";
+        private const string CNDMFGeneratedFolder = "nadena.dev.ndmf/__Generated";
         public int callbackOrder => int.MaxValue - 105; // VRCFury's compressor is `int.MaxValue - 100`
 
         public bool OnPreprocessAvatar(GameObject obj) {
@@ -64,25 +65,36 @@ namespace ParamComp.Editor.Hooks
             ).animatorController;
             var fxControllerPath = AssetDatabase.GetAssetPath(runtimeCtrl);
 
-            // Only make a laurafied version if it's NOT a vrcFury asset
-            if (!fxControllerPath.Contains(CVRCFuryTempFolder)) {
-                fxControllerPath = CloneAsset(fxControllerPath);
-                runtimeCtrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(fxControllerPath);
+            if (runtimeCtrl == null)
+                return (paramDef, null);
 
-                for (int i = 0; i < avatar.baseAnimationLayers.Length; i++) {
-                    if (avatar.baseAnimationLayers[i].type == VRCAvatarDescriptor.AnimLayerType.FX) {
-                        var layer = avatar.baseAnimationLayers[i];
-                        layer.animatorController = runtimeCtrl;
-                        avatar.baseAnimationLayers[i] = layer;
-                        break;
+            if (fxControllerPath.Contains(CNDMFGeneratedFolder)) {
+                // Fix for NDMF molested asset packs.
+                return (paramDef, (AnimatorController)AssetDatabase.LoadAllAssetsAtPath(fxControllerPath).First(
+                    x => x.name.Equals(runtimeCtrl.name, StringComparison.Ordinal) &&
+                        x is AnimatorController
+                ));
+            } else {
+                if (!fxControllerPath.Contains(CVRCFuryTempFolder)) {
+                    // Only make a laurafied version if it's NOT a vrcFury asset
+                    fxControllerPath = CloneAsset(fxControllerPath);
+                    runtimeCtrl = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(fxControllerPath);
+
+                    if (runtimeCtrl == null)
+                        return (paramDef, null);
+
+                    for (int i = 0; i < avatar.baseAnimationLayers.Length; i++) {
+                        if (avatar.baseAnimationLayers[i].type == VRCAvatarDescriptor.AnimLayerType.FX) {
+                            var layer = avatar.baseAnimationLayers[i];
+                            layer.animatorController = runtimeCtrl;
+                            avatar.baseAnimationLayers[i] = layer;
+                            break;
+                        }
                     }
                 }
-            }
 
-            var animCtrl = runtimeCtrl != null
-                ? AssetDatabase.LoadAssetAtPath<AnimatorController>(fxControllerPath)
-                : null;
-            return (paramDef, animCtrl);
+                return (paramDef, AssetDatabase.LoadAssetAtPath<AnimatorController>(fxControllerPath));
+            }
         }
 
         private static string CloneAsset(string oldPath) {

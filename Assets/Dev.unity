@@ -175,6 +175,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 114213644543934330, guid: 2cd7c2d73a12a214b930125a1ca4ed33, type: 3}
+      propertyPath: settings.isRemote
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -311,7 +315,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   version: 3
   unityVersion: 2022.3.22f1
-  vrcfuryVersion: 1.1296.0
+  vrcfuryVersion: 1.1429.0
   somethingIsBroken: 0
   config:
     features: []
@@ -829,7 +833,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   version: 3
   unityVersion: 2022.3.22f1
-  vrcfuryVersion: 1.1296.0
+  vrcfuryVersion: 1.1429.0
   somethingIsBroken: 0
   config:
     features: []
@@ -1234,6 +1238,7 @@ GameObject:
   - component: {fileID: 1580627968}
   - component: {fileID: 1580627967}
   - component: {fileID: 1580627966}
+  - component: {fileID: 1580627974}
   m_Layer: 0
   m_Name: Dummy WD Mixed Off
   m_TagString: Untagged
@@ -1255,7 +1260,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   version: 3
   unityVersion: 2022.3.22f1
-  vrcfuryVersion: 1.1296.0
+  vrcfuryVersion: 1.1429.0
   somethingIsBroken: 0
   config:
     features: []
@@ -1644,6 +1649,34 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1580627974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1580627965}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d9e94e501a2d4c95bff3d5601013d923, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  version: 3
+  unityVersion: 2022.3.22f1
+  vrcfuryVersion: 1.1429.0
+  somethingIsBroken: 0
+  config:
+    features: []
+  content:
+    rid: 3693943675801042944
+  references:
+    version: 2
+    RefIds:
+    - rid: 3693943675801042944
+      type: {class: FixWriteDefaults, ns: VF.Model.Feature, asm: VRCFury}
+      data:
+        version: 0
+        mode: 3
 --- !u!1 &1820934911
 GameObject:
   m_ObjectHideFlags: 0
@@ -2056,7 +2089,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   version: 3
   unityVersion: 2022.3.22f1
-  vrcfuryVersion: 1.1296.0
+  vrcfuryVersion: 1.1429.0
   somethingIsBroken: 0
   config:
     features: []
@@ -2107,7 +2140,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   version: 3
   unityVersion: 2022.3.22f1
-  vrcfuryVersion: 1.1296.0
+  vrcfuryVersion: 1.1429.0
   somethingIsBroken: 0
   config:
     features: []
