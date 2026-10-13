@@ -327,6 +327,24 @@ namespace ParamComp.Editor
                     currentGetPos = new(0, 60);
             var stateCount = Math.Max(numBatches.Length, boolBatches.Length);
 
+            // START -- Racing fix
+            var remoteIdle = remoteMachine.AddState($"Remote Idle", currentGetPos);
+            remoteIdle.writeDefaultValues = makeStatesWD;
+
+            var remoteIdleExitTrans = remoteIdle.AddExitTransition();
+            remoteIdleExitTrans.canTransitionToSelf = false;
+            remoteIdleExitTrans.hasExitTime = false;
+            remoteIdleExitTrans.exitTime = 0f;
+            remoteIdleExitTrans.hasFixedDuration = true;
+            remoteIdleExitTrans.offset = 0f;
+            remoteIdleExitTrans.duration = 0f;
+            remoteIdleExitTrans.AddCondition(AnimatorConditionMode.If, 0, UtilParameters.SyncTrueName);
+
+            remoteMachine.defaultState = remoteIdle;
+
+            currentGetPos.y += CGetStateYPosOffset;
+            // END -- Racing fix
+
             for (int i = 0; i < stateCount; i++) {
                 var syncIndex = i + 1;
                 var (setState, setDriver) = AddState(localMachine, syncIndex, currentSetPos, makeStatesWD, false);
@@ -352,7 +370,6 @@ namespace ParamComp.Editor
 
                 if (i == 0) {
                     localMachine.defaultState = setState;
-                    remoteMachine.defaultState = getState;
                     currentSetPos.x += CSetStateXPosOffsetIdx0;
                 } else if (prevSetState != null) {
                     var setExtraFrameTrans = AddTransition(prevSetState, setState, false);
